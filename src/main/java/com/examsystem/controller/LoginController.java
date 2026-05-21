@@ -1,8 +1,10 @@
 package com.examsystem.controller;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.application.Application;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,10 +161,26 @@ public class LoginController {
                 break;
             case STUDENT:
                 logger.info("Navigating to Student Dashboard");
-                showDashboard("Student Dashboard");
+                navigateToStudentDashboard();
                 break;
             default:
                 logger.warn("Unknown role: {}", role);
+        }
+    }
+
+    private void navigateToStudentDashboard() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/StudentDashboard.fxml"));
+            Parent root = loader.load();
+            StudentDashboardController controller = loader.getController();
+            controller.setUser(Session.getInstance().getCurrentUser());
+
+            Stage stage = (Stage) loginButton.getScene().getWindow();
+            stage.setScene(new Scene(root, 900, 650));
+            stage.setTitle("Student Dashboard - ExamSystem");
+        } catch (Exception e) {
+            logger.error("Error navigating to student dashboard", e);
+            showError("Unable to open student dashboard: " + e.getMessage());
         }
     }
 
