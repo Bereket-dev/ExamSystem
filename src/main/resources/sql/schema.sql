@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS exams (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+    INDEX idx_exam_teacher (teacher_id),
     INDEX idx_exam_date (exam_date),
     INDEX idx_published (is_published)
 );
@@ -150,8 +151,3 @@ CREATE TABLE IF NOT EXISTS audit_log (
     INDEX idx_user_id (user_id),
     INDEX idx_timestamp (timestamp)
 );
-
--- Create indexes for better performance
-CREATE INDEX idx_exam_teacher ON exams(teacher_id);
-CREATE INDEX idx_question_exam ON questions(exam_id);
-CREATE INDEX idx_student_exam ON student_exam_assignments(student_id, exam_id);

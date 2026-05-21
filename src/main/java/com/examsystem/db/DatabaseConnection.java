@@ -1,5 +1,6 @@
 package com.examsystem.db;
 
+import com.examsystem.util.ConfigManager;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
@@ -14,63 +15,71 @@ import java.sql.SQLException;
  */
 public class DatabaseConnection {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseConnection.class);
-    private static HikariDataSource dataSource;
+    private static volatile HikariDataSource dataSource;
+    private static final Object LOCK = new Object();
 
-    // Database configuration properties
-    private static final String DB_HOST = "localhost";
-    private static final int DB_PORT = 3306;
-    private static final String DB_NAME = "exam_system";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "1234"; // Configure as needed
-    private static final int MAX_POOL_SIZE = 10;
-    private static final int MIN_IDLE = 5;
-
-    static {
-        initializeDataSource();
+    private static String getDbHost() {
+        return ConfigManager.getProperty("db.host", "localhost");
     }
 
-    /**
-     * Initialize HikariCP data source with MySQL connection pool
-     */
-    private static void initializeDataSource() {
+    private static int getDbPort() {
+        return ConfigManager.getIntProperty("db.port", 3306);
+    }
+
+    private static String getDbName() {
+        return ConfigManager.getProperty("db.name", "exam_system");
+    }
+
+    private static String getDbUser() {
+        return ConfigManager.getProperty("db.user", "examsystem");
+    }
+
+    private static String getDbPassword() {
+        return ConfigManager.getProperty("db.password", "1234");
+    }
+
+    private static HikariDataSource getDataSource() throws SQLException {
+        if (dataSource == null) {
+            synchronized (LOCK) {
+                if (dataSource == null) {
+                    initializeDataSource();
+                }
+            }
+        }
+        return dataSource;
+    }
+
+    private static void initializeDataSource() throws SQLException {
         try {
             HikariConfig config = new HikariConfig();
-            config.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s", DB_HOST, DB_PORT, DB_NAME));
-            config.setUsername(DB_USER);
-            config.setPassword(DB_PASSWORD);
-            config.setMaximumPoolSize(MAX_POOL_SIZE);
-            config.setMinimumIdle(MIN_IDLE);
+            String jdbcUrl = String.format(
+                    "jdbc:mysql://%s:%d/%s?allowPublicKeyRetrieval=true&useSSL=false",
+                    getDbHost(), getDbPort(), getDbName());
+            config.setJdbcUrl(jdbcUrl);
+            config.setUsername(getDbUser());
+            config.setPassword(getDbPassword());
+            config.setMaximumPoolSize(10);
+            config.setMinimumIdle(5);
             config.setConnectionTimeout(20000);
             config.setIdleTimeout(300000);
             config.setMaxLifetime(1200000);
             config.setAutoCommit(true);
 
             dataSource = new HikariDataSource(config);
-            logger.info("Database connection pool initialized successfully");
+            logger.info("Database connection pool initialized for user '{}' on '{}'",
+                    getDbUser(), getDbName());
         } catch (Exception e) {
             logger.error("Failed to initialize database connection pool", e);
-            throw new RuntimeException("Cannot initialize database connection pool", e);
+            throw new SQLException(
+                    "Cannot connect to MySQL. Run: sudo mysql < src/main/resources/sql/setup_user.sql",
+                    e);
         }
     }
 
-    /**
-     * Get a connection from the pool
-     * 
-     * @return Connection object
-     * @throws SQLException if unable to get connection
-     */
     public static Connection getConnection() throws SQLException {
-        if (dataSource == null) {
-            throw new SQLException("DataSource not initialized");
-        }
-        return dataSource.getConnection();
+        return getDataSource().getConnection();
     }
 
-    /**
-     * Test the database connection
-     * 
-     * @return true if connection successful, false otherwise
-     */
     public static boolean testConnection() {
         try (Connection conn = getConnection()) {
             logger.info("Database connection test successful");
@@ -81,12 +90,10 @@ public class DatabaseConnection {
         }
     }
 
-    /**
-     * Close the connection pool (call on application shutdown)
-     */
     public static void closePool() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
+            dataSource = null;
             logger.info("Database connection pool closed");
         }
     }

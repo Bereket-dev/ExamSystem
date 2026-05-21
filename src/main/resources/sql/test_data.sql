@@ -38,16 +38,16 @@ INSERT INTO questions (exam_id, question_text, question_type, marks, sequence_or
 
 -- Insert options for questions
 INSERT INTO options (question_id, option_text, is_correct, sequence_order) VALUES
-(1, 'To compile Java code', 'false', 1),
-(1, 'To provide a platform-independent way to run Java code', 'true', 2),
-(1, 'To manage memory allocation', 'false', 3),
-(1, 'To parse Java syntax', 'false', 4),
-(2, 'int', 'false', 1),
-(2, 'String', 'true', 2),
-(2, 'boolean', 'false', 3),
-(2, 'double', 'false', 4),
-(3, 'True', 'false', 1),
-(3, 'False', 'true', 2);
+(1, 'To compile Java code', FALSE, 1),
+(1, 'To provide a platform-independent way to run Java code', TRUE, 2),
+(1, 'To manage memory allocation', FALSE, 3),
+(1, 'To parse Java syntax', FALSE, 4),
+(2, 'int', FALSE, 1),
+(2, 'String', TRUE, 2),
+(2, 'boolean', FALSE, 3),
+(2, 'double', FALSE, 4),
+(3, 'True', FALSE, 1),
+(3, 'False', TRUE, 2);
 
 -- Assign exams to students
 INSERT INTO student_exam_assignments (exam_id, student_id, assigned_date, is_attempted) VALUES
