@@ -3,7 +3,6 @@ package com.examsystem.controller;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -14,7 +13,9 @@ import com.examsystem.repository.UserRepositoryImpl;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
 import com.examsystem.util.BackgroundLoader;
+import com.examsystem.util.FormValidator;
 import com.examsystem.util.Session;
+import com.examsystem.util.UiManager;
 import javafx.application.Platform;
 
 /**
@@ -56,7 +57,7 @@ public class LoginController {
         logger.info("Initializing LoginController");
         if (errorLabel != null) {
             errorLabel.setText("");
-            errorLabel.setStyle("-fx-text-fill: red;");
+            errorLabel.getStyleClass().add("status-error");
         }
 
         if (loginButton != null) {
@@ -74,14 +75,20 @@ public class LoginController {
     @FXML
     private void handleLogin() {
         errorLabel.setText("");
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText();
+        FormValidator.clearErrors(usernameField, passwordField);
 
-        if (username.isEmpty() || password.isEmpty()) {
-            showError("Username and password are required");
+        FormValidator.ValidationResult validation = FormValidator.combine(
+                FormValidator.required(usernameField, "Username"),
+                FormValidator.required(passwordField, "Password"));
+        if (!validation.isValid()) {
+            FormValidator.applyResult(validation, errorLabel);
+            UiManager.shake(usernameField);
             passwordField.clear();
             return;
         }
+
+        String username = usernameField.getText().trim();
+        String password = passwordField.getText();
 
         loginButton.setDisable(true);
         logger.info("Login attempt started on background thread");
@@ -194,8 +201,7 @@ public class LoginController {
             controller.setUser(Session.getInstance().getCurrentUser());
 
             Stage stage = (Stage) loginButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Teacher Dashboard - ExamSystem");
+            UiManager.navigateToApp(stage, root, "Teacher Dashboard - ExamSystem");
         } catch (Exception e) {
             logger.error("Error navigating to teacher dashboard", e);
             showError("Unable to open teacher dashboard: " + e.getMessage());
@@ -210,8 +216,7 @@ public class LoginController {
             controller.setUser(Session.getInstance().getCurrentUser());
 
             Stage stage = (Stage) loginButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Student Dashboard - ExamSystem");
+            UiManager.navigateToApp(stage, root, "Student Dashboard - ExamSystem");
         } catch (Exception e) {
             logger.error("Error navigating to student dashboard", e);
             showError("Unable to open student dashboard: " + e.getMessage());
@@ -259,9 +264,13 @@ public class LoginController {
     private void showError(String message) {
         logger.error("Login Error: {}", message);
         if (errorLabel != null) {
+            errorLabel.getStyleClass().removeAll("status-success");
+            errorLabel.getStyleClass().add("status-error");
             errorLabel.setText(message);
-            errorLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-size: 13; -fx-font-weight: bold;");
             errorLabel.setWrapText(true);
+        }
+        if (usernameField != null) {
+            UiManager.shake(usernameField);
         }
     }
 

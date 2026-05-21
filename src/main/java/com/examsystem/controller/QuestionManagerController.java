@@ -6,13 +6,14 @@ import com.examsystem.model.QuestionOption;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.service.TeacherService;
+import com.examsystem.util.FormValidator;
 import com.examsystem.util.Session;
+import com.examsystem.util.UiManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -106,16 +107,30 @@ public class QuestionManagerController implements TeacherScreen {
     }
 
     private void handleAddQuestion() {
-        String text = questionTextField.getText().trim();
-        if (text.isEmpty()) {
-            statusLabel.setText("Question text is required.");
+        FormValidator.clearErrors(questionTextField, marksField, sequenceField, option1Field,
+                option2Field, option3Field, option4Field, correctOptionField);
+
+        FormValidator.ValidationResult validation = FormValidator.combine(
+                FormValidator.required(questionTextField, "Question text"),
+                FormValidator.positiveInteger(marksField, "Marks", true));
+
+        Question.QuestionType type = questionTypeCombo.getValue();
+        if (type == Question.QuestionType.MCQ) {
+            validation = FormValidator.combine(validation, validateMcqFields());
+        } else if (type == Question.QuestionType.TRUE_FALSE) {
+            validation = FormValidator.combine(validation,
+                    FormValidator.required(correctOptionField, "Correct option (1=True, 2=False)"));
+        }
+
+        if (!validation.isValid()) {
+            FormValidator.applyResult(validation, statusLabel);
             return;
         }
 
         try {
             int sequence = parseInt(sequenceField.getText(), questions.size() + 1);
-            int marks = parseInt(marksField.getText(), 1);
-            Question.QuestionType type = questionTypeCombo.getValue();
+            int marks = Integer.parseInt(marksField.getText().trim());
+            String text = questionTextField.getText().trim();
 
             Question question = new Question(exam.getExamId(), text, type, marks, sequence);
             teacherService.addQuestion(question);
@@ -128,10 +143,29 @@ public class QuestionManagerController implements TeacherScreen {
 
             questionTextField.clear();
             refreshQuestions();
+            statusLabel.getStyleClass().removeAll("status-error");
+            statusLabel.getStyleClass().add("status-success");
             statusLabel.setText("Question added.");
         } catch (Exception e) {
+            statusLabel.getStyleClass().removeAll("status-success");
+            statusLabel.getStyleClass().add("status-error");
             statusLabel.setText("Error: " + e.getMessage());
         }
+    }
+
+    private FormValidator.ValidationResult validateMcqFields() {
+        int filled = 0;
+        TextField[] optionFields = { option1Field, option2Field, option3Field, option4Field };
+        for (TextField field : optionFields) {
+            if (field.getText() != null && !field.getText().trim().isEmpty()) {
+                filled++;
+            }
+        }
+        if (filled < 2) {
+            return FormValidator.ValidationResult.fail(
+                    "MCQ requires at least two options.", option1Field, option2Field);
+        }
+        return FormValidator.positiveInteger(correctOptionField, "Correct option number", true);
     }
 
     private void addMcqOptions(Question question) {
@@ -182,8 +216,7 @@ public class QuestionManagerController implements TeacherScreen {
             controller.setUser(Session.getInstance().getCurrentUser());
 
             Stage stage = (Stage) backButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Teacher Dashboard - ExamSystem");
+            UiManager.navigateToApp(stage, root, "Teacher Dashboard - ExamSystem");
         } catch (Exception e) {
             statusLabel.setText("Unable to return: " + e.getMessage());
         }

@@ -14,7 +14,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
+import com.examsystem.util.UiManager;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -160,8 +160,7 @@ public class TeacherDashboardController {
             controller.setExam(selected);
 
             Stage stage = (Stage) addQuestionsButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Question Manager - " + selected.getExamName());
+            UiManager.navigateToApp(stage, root, "Question Manager - " + selected.getExamName());
         } catch (Exception e) {
             setStatus("Unable to open question manager: " + e.getMessage());
         }
@@ -177,8 +176,7 @@ public class TeacherDashboardController {
             }
 
             Stage stage = (Stage) createExamButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle(title + " - ExamSystem");
+            UiManager.navigateToApp(stage, root, title + " - ExamSystem");
         } catch (Exception e) {
             setStatus("Unable to open screen: " + e.getMessage());
         }
@@ -192,8 +190,7 @@ public class TeacherDashboardController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) logoutButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 800, 600));
-            stage.setTitle("ExamSystem - Login");
+            UiManager.navigateToLogin(stage, root);
         } catch (Exception e) {
             setStatus("Logout failed: " + e.getMessage());
         }

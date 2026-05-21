@@ -2,42 +2,44 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane prefHeight="650" prefWidth="900" xmlns="http://javafx.com/javafx/21"
-    xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.examsystem.controller.QuestionManagerController">
+<BorderPane prefHeight="650" prefWidth="900" minHeight="520" minWidth="720"
+    styleClass="dashboard-root"
+    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.examsystem.controller.QuestionManagerController">
     <top>
-        <HBox style="-fx-background-color: #2c3e50; -fx-padding: 16;">
-            <Label fx:id="examTitleLabel" text="Question Manager" style="-fx-text-fill: white; -fx-font-size: 18; -fx-font-weight: bold;" />
+        <HBox styleClass="app-header">
+            <Label fx:id="examTitleLabel" text="Question Manager" styleClass="header-title" />
         </HBox>
     </top>
     <center>
-        <SplitPane dividerPositions="0.4">
+        <SplitPane dividerPositions="0.4" styleClass="content-area">
             <items>
-                <VBox spacing="8" style="-fx-padding: 10;">
-                    <Label text="Existing Questions" style="-fx-font-weight: bold;" />
-                    <ListView fx:id="questionListView" prefHeight="500" />
+                <VBox spacing="8" styleClass="panel-muted">
+                    <Label text="Existing Questions" styleClass="subsection-title" />
+                    <ListView fx:id="questionListView" VBox.vgrow="ALWAYS" />
                 </VBox>
-                <VBox spacing="8" style="-fx-padding: 10;">
-                    <TextArea fx:id="questionTextField" promptText="Question text" prefRowCount="3" />
-                    <ComboBox fx:id="questionTypeCombo" />
+                <VBox spacing="8" styleClass="form-grid">
+                    <TextArea fx:id="questionTextField" promptText="Question text *" prefRowCount="3" />
+                    <ComboBox fx:id="questionTypeCombo" promptText="Question type" maxWidth="Infinity" />
                     <HBox spacing="8">
-                        <TextField fx:id="marksField" promptText="Marks" HBox.hgrow="ALWAYS" />
+                        <TextField fx:id="marksField" promptText="Marks *" HBox.hgrow="ALWAYS" />
                         <TextField fx:id="sequenceField" promptText="Order" HBox.hgrow="ALWAYS" />
                     </HBox>
-                    <Label text="MCQ Options (1-4) / True=1 False=2 for T/F" />
+                    <Label text="MCQ Options (1-4) / True=1 False=2 for T/F" styleClass="subsection-title" />
                     <TextField fx:id="option1Field" promptText="Option 1" />
                     <TextField fx:id="option2Field" promptText="Option 2" />
                     <TextField fx:id="option3Field" promptText="Option 3" />
                     <TextField fx:id="option4Field" promptText="Option 4" />
                     <TextField fx:id="correctOptionField" promptText="Correct option number" />
-                    <Label fx:id="statusLabel" textFill="#27ae60" wrapText="true" />
+                    <Label fx:id="statusLabel" styleClass="status-success" wrapText="true" />
                 </VBox>
             </items>
         </SplitPane>
     </center>
     <bottom>
-        <HBox spacing="10" style="-fx-padding: 20;" alignment="CENTER_RIGHT">
-            <Button fx:id="backButton" text="Back" />
-            <Button fx:id="addQuestionButton" text="Add Question" style="-fx-background-color: #2980b9; -fx-text-fill: white;" />
+        <HBox spacing="10" styleClass="content-area" alignment="CENTER_RIGHT">
+            <Button fx:id="backButton" text="Back" styleClass="btn-neutral" />
+            <Button fx:id="addQuestionButton" text="Add Question" styleClass="btn-secondary" />
         </HBox>
     </bottom>
 </BorderPane>

@@ -2,23 +2,25 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane prefHeight="650" prefWidth="900" xmlns="http://javafx.com/javafx/21"
-    xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.examsystem.controller.MonitoringController">
+<BorderPane prefHeight="650" prefWidth="900" minHeight="520" minWidth="720"
+    styleClass="dashboard-root"
+    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.examsystem.controller.MonitoringController">
     <top>
-        <HBox style="-fx-background-color: #2c3e50; -fx-padding: 16;">
-            <Label text="Live Exam Monitoring" style="-fx-text-fill: white; -fx-font-size: 18; -fx-font-weight: bold;" />
+        <HBox styleClass="app-header">
+            <Label text="Live Exam Monitoring" styleClass="header-title" />
         </HBox>
     </top>
     <center>
-        <VBox spacing="12" style="-fx-padding: 20;">
-            <Label fx:id="statusLabel" />
-            <ListView fx:id="monitoringListView" prefHeight="450" />
+        <VBox spacing="12" styleClass="content-area">
+            <Label fx:id="statusLabel" styleClass="status-info" />
+            <ListView fx:id="monitoringListView" VBox.vgrow="ALWAYS" prefHeight="450" />
         </VBox>
     </center>
     <bottom>
-        <HBox spacing="10" style="-fx-padding: 20;" alignment="CENTER_RIGHT">
-            <Button fx:id="backButton" text="Back" />
-            <Button fx:id="refreshButton" text="Refresh" style="-fx-background-color: #d35400; -fx-text-fill: white;" />
+        <HBox spacing="10" styleClass="content-area" alignment="CENTER_RIGHT">
+            <Button fx:id="backButton" text="Back" styleClass="btn-neutral" />
+            <Button fx:id="refreshButton" text="Refresh" styleClass="btn-warning" />
         </HBox>
     </bottom>
 </BorderPane>

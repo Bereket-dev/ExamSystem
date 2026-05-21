@@ -14,7 +14,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
+import com.examsystem.util.UiManager;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -172,8 +172,7 @@ public class StudentDashboardController {
             controller.startExam(exam, assignmentId);
 
             Stage stage = (Stage) startExamButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Exam: " + exam.getExamName());
+            UiManager.navigateToApp(stage, root, "Exam: " + exam.getExamName() + " - ExamSystem");
         } catch (Exception e) {
             setStatus("Unable to open exam screen: " + e.getMessage());
             e.printStackTrace();
@@ -188,8 +187,7 @@ public class StudentDashboardController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) logoutButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 800, 600));
-            stage.setTitle("ExamSystem - Login");
+            UiManager.navigateToLogin(stage, root);
         } catch (Exception e) {
             setStatus("Unable to return to login screen: " + e.getMessage());
             e.printStackTrace();

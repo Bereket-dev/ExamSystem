@@ -5,12 +5,13 @@ import com.examsystem.model.Student;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.service.TeacherService;
+import com.examsystem.util.FormValidator;
 import com.examsystem.util.Session;
+import com.examsystem.util.UiManager;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -70,12 +71,21 @@ public class AssignStudentsController implements TeacherScreen {
     }
 
     private void handleAssign() {
-        Exam exam = examComboBox.getSelectionModel().getSelectedItem();
-        String selectedLabel = studentListView.getSelectionModel().getSelectedItem();
-        if (exam == null || selectedLabel == null) {
-            statusLabel.setText("Select an exam and a student.");
+        FormValidator.clearErrors(examComboBox, studentListView);
+
+        FormValidator.ValidationResult validation = FormValidator.combine(
+                FormValidator.requiredSelection(examComboBox, "an exam"),
+                studentListView.getSelectionModel().getSelectedItem() == null
+                        ? FormValidator.ValidationResult.fail("Please select a student.", studentListView)
+                        : FormValidator.ValidationResult.ok());
+
+        if (!validation.isValid()) {
+            FormValidator.applyResult(validation, statusLabel);
             return;
         }
+
+        Exam exam = examComboBox.getSelectionModel().getSelectedItem();
+        String selectedLabel = studentListView.getSelectionModel().getSelectedItem();
 
         Student student = teacherService.getAllStudents().stream()
                 .filter(s -> teacherService.getStudentDisplayName(s).equals(selectedLabel))
@@ -92,6 +102,8 @@ public class AssignStudentsController implements TeacherScreen {
             if (!exam.isPublished()) {
                 teacherService.publishExam(exam.getExamId(), true);
             }
+            statusLabel.getStyleClass().removeAll("status-error");
+            statusLabel.getStyleClass().add("status-success");
             statusLabel.setText("Exam assigned to " + selectedLabel);
         } catch (Exception e) {
             statusLabel.setText("Assignment failed: " + e.getMessage());
@@ -106,8 +118,7 @@ public class AssignStudentsController implements TeacherScreen {
             controller.setUser(Session.getInstance().getCurrentUser());
 
             Stage stage = (Stage) backButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Teacher Dashboard - ExamSystem");
+            UiManager.navigateToApp(stage, root, "Teacher Dashboard - ExamSystem");
         } catch (Exception e) {
             statusLabel.setText("Unable to return: " + e.getMessage());
         }

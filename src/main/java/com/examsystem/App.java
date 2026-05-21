@@ -5,9 +5,10 @@ import com.examsystem.rmi.RMIManager;
 import com.examsystem.util.ThreadPoolManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.stage.Stage;
+import com.examsystem.util.UiManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,9 +26,11 @@ public class App extends Application {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();
 
-            Scene scene = new Scene(root, 800, 600);
+            Scene scene = UiManager.createScene(root, UiManager.LOGIN_WIDTH, UiManager.LOGIN_HEIGHT);
             primaryStage.setTitle("ExamSystem - Login");
+            UiManager.configureStage(primaryStage, true);
             primaryStage.setScene(scene);
+            UiManager.animateIn(root);
             primaryStage.show();
 
             logger.info("Application started successfully with login screen");

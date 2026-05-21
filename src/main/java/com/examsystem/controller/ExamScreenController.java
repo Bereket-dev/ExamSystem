@@ -15,7 +15,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
+import com.examsystem.util.UiManager;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
@@ -286,8 +286,7 @@ public class ExamScreenController {
             controller.setResult(exam, totalMarks, exam.getTotalMarks());
 
             Stage stage = (Stage) submitButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Exam Results - ExamSystem");
+            UiManager.navigateToApp(stage, root, "Exam Results - ExamSystem");
         } catch (Exception e) {
             feedbackLabel.setText("Unable to open results: " + e.getMessage());
         }

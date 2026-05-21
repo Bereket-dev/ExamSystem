@@ -10,7 +10,7 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
+import com.examsystem.util.UiManager;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -91,7 +91,7 @@ public class ReportsController implements TeacherScreen {
             controller.setUser(Session.getInstance().getCurrentUser());
 
             Stage stage = (Stage) backButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
+            UiManager.navigateToApp(stage, root, "Teacher Dashboard - ExamSystem");
             stage.setTitle("Teacher Dashboard - ExamSystem");
         } catch (Exception e) {
             statusLabel.setText("Unable to return: " + e.getMessage());

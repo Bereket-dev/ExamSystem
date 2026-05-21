@@ -6,7 +6,7 @@ import com.examsystem.util.Session;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
+import com.examsystem.util.UiManager;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
@@ -55,7 +55,7 @@ public class ResultScreenController {
             controller.setUser(currentUser);
 
             Stage stage = (Stage) backButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
+            UiManager.navigateToApp(stage, root, "Student Dashboard - ExamSystem");
             stage.setTitle("Student Dashboard - ExamSystem");
         } catch (Exception e) {
             statusLabel.setText("Unable to return: " + e.getMessage());

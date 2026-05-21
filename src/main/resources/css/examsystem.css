@@ -1,0 +1,241 @@
+/* ExamSystem — Phase 9 UI theme */
+
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 14px;
+    -fx-background-color: #ecf0f1;
+}
+
+/* ---------- Login ---------- */
+.login-root {
+    -fx-background-color: linear-gradient(to bottom, #2c3e50, #34495e);
+}
+
+.login-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.login-subtitle {
+    -fx-font-size: 16px;
+    -fx-text-fill: #ecf0f1;
+}
+
+.login-card {
+    -fx-padding: 30;
+    -fx-background-color: #2c3e50;
+    -fx-background-radius: 8;
+    -fx-border-color: #34495e;
+    -fx-border-width: 2;
+    -fx-border-radius: 8;
+    -fx-max-width: 380;
+    -fx-min-width: 280;
+}
+
+.login-footer {
+    -fx-font-size: 10px;
+    -fx-text-fill: #95a5a6;
+}
+
+/* ---------- Layout / responsive ---------- */
+.dashboard-root {
+    -fx-min-width: 720;
+    -fx-min-height: 520;
+}
+
+.content-area {
+    -fx-padding: 20;
+}
+
+.app-header {
+    -fx-background-color: #2c3e50;
+    -fx-padding: 16;
+}
+
+.header-title {
+    -fx-text-fill: white;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.header-subtitle {
+    -fx-text-fill: #ecf0f1;
+    -fx-font-size: 14px;
+}
+
+.panel {
+    -fx-background-color: white;
+    -fx-border-color: #dfe6e9;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.panel-muted {
+    -fx-background-color: #f4f6f7;
+    -fx-border-color: #dfe6e9;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.subsection-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+}
+
+.form-grid {
+    -fx-padding: 20;
+    -fx-spacing: 12;
+}
+
+/* ---------- Buttons ---------- */
+.button {
+    -fx-cursor: hand;
+    -fx-padding: 8 18;
+    -fx-font-weight: bold;
+}
+
+.button:hover {
+    -fx-opacity: 0.92;
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+.button:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+.btn-primary {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+}
+
+.btn-secondary {
+    -fx-background-color: #2980b9;
+    -fx-text-fill: white;
+}
+
+.btn-danger {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+}
+
+.btn-warning {
+    -fx-background-color: #d35400;
+    -fx-text-fill: white;
+}
+
+.btn-purple {
+    -fx-background-color: #8e44ad;
+    -fx-text-fill: white;
+}
+
+.btn-teal {
+    -fx-background-color: #16a085;
+    -fx-text-fill: white;
+}
+
+.btn-neutral {
+    -fx-background-color: #7f8c8d;
+    -fx-text-fill: white;
+}
+
+/* ---------- Form controls ---------- */
+.text-field, .password-field, .text-area, .combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 8;
+}
+
+.text-field:focused, .password-field:focused, .text-area:focused, .combo-box:focused {
+    -fx-border-color: #3498db;
+    -fx-border-width: 2;
+}
+
+.field-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #ecf0f1;
+}
+
+.field-label-dark {
+    -fx-font-size: 12px;
+    -fx-text-fill: #2c3e50;
+}
+
+.field-error {
+    -fx-border-color: #e74c3c !important;
+    -fx-border-width: 2 !important;
+    -fx-background-color: #fdecea;
+}
+
+.status-error {
+    -fx-text-fill: #e74c3c;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.status-success {
+    -fx-text-fill: #27ae60;
+    -fx-font-size: 13px;
+}
+
+.status-info {
+    -fx-text-fill: #2980b9;
+    -fx-font-size: 13px;
+}
+
+/* ---------- Lists ---------- */
+.list-view {
+    -fx-background-color: white;
+    -fx-border-color: #dfe6e9;
+    -fx-border-radius: 4;
+}
+
+.list-view .list-cell:filled:selected {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+/* ---------- Exam / results ---------- */
+.timer-label {
+    -fx-text-fill: #f1c40f;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.marks-display {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #27ae60;
+}
+
+.result-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.question-text {
+    -fx-font-size: 15px;
+    -fx-text-fill: #2c3e50;
+}
+
+/* ---------- Split pane ---------- */
+.split-pane {
+    -fx-background-color: transparent;
+}
+
+.split-pane-divider {
+    -fx-background-color: #bdc3c7;
+    -fx-padding: 0 2 0 2;
+}

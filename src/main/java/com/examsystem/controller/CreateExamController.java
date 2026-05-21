@@ -4,11 +4,12 @@ import com.examsystem.model.Exam;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.service.TeacherService;
+import com.examsystem.util.FormValidator;
 import com.examsystem.util.Session;
+import com.examsystem.util.UiManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -74,23 +75,43 @@ public class CreateExamController implements TeacherScreen {
     }
 
     private void handleSave() {
+        FormValidator.clearErrors(examNameField, subjectField, durationField, totalQuestionsField,
+                totalMarksField, passingMarksField, examDateField, examTimeField);
+
+        FormValidator.ValidationResult validation = FormValidator.combine(
+                FormValidator.required(examNameField, "Exam name"),
+                FormValidator.required(subjectField, "Subject"),
+                FormValidator.positiveInteger(durationField, "Duration", true),
+                FormValidator.positiveInteger(totalQuestionsField, "Total questions", true),
+                FormValidator.positiveInteger(totalMarksField, "Total marks", true),
+                FormValidator.positiveInteger(passingMarksField, "Passing marks", true),
+                FormValidator.dateOptional(examDateField, "Exam date"),
+                FormValidator.timeOptional(examTimeField, "Exam time"));
+
+        if (!validation.isValid()) {
+            FormValidator.applyResult(validation, statusLabel);
+            return;
+        }
+
         try {
-            String name = examNameField.getText().trim();
-            String subject = subjectField.getText().trim();
-            if (name.isEmpty() || subject.isEmpty()) {
-                statusLabel.setText("Exam name and subject are required.");
+            int totalMarks = Integer.parseInt(totalMarksField.getText().trim());
+            int passingMarks = Integer.parseInt(passingMarksField.getText().trim());
+            if (passingMarks > totalMarks) {
+                FormValidator.ValidationResult fail = FormValidator.ValidationResult.fail(
+                        "Passing marks cannot exceed total marks.", passingMarksField, totalMarksField);
+                FormValidator.applyResult(fail, statusLabel);
                 return;
             }
 
             Exam exam = new Exam();
             exam.setTeacherId(teacher.getTeacherId());
-            exam.setExamName(name);
-            exam.setSubject(subject);
+            exam.setExamName(examNameField.getText().trim());
+            exam.setSubject(subjectField.getText().trim());
             exam.setDescription(descriptionField.getText().trim());
-            exam.setDurationMinutes(parseInt(durationField.getText(), 60));
-            exam.setTotalQuestions(parseInt(totalQuestionsField.getText(), 0));
-            exam.setTotalMarks(parseInt(totalMarksField.getText(), 100));
-            exam.setPassingMarks(parseInt(passingMarksField.getText(), 40));
+            exam.setDurationMinutes(Integer.parseInt(durationField.getText().trim()));
+            exam.setTotalQuestions(Integer.parseInt(totalQuestionsField.getText().trim()));
+            exam.setTotalMarks(totalMarks);
+            exam.setPassingMarks(passingMarks);
             exam.setPublished(publishCheckBox.isSelected());
 
             if (!examDateField.getText().trim().isEmpty()) {
@@ -101,17 +122,14 @@ public class CreateExamController implements TeacherScreen {
             }
 
             teacherService.createExam(exam);
+            statusLabel.getStyleClass().removeAll("status-error");
+            statusLabel.getStyleClass().add("status-success");
             statusLabel.setText("Exam created successfully (ID: " + exam.getExamId() + ").");
         } catch (Exception e) {
+            statusLabel.getStyleClass().removeAll("status-success");
+            statusLabel.getStyleClass().add("status-error");
             statusLabel.setText("Error creating exam: " + e.getMessage());
         }
-    }
-
-    private int parseInt(String value, int defaultValue) {
-        if (value == null || value.trim().isEmpty()) {
-            return defaultValue;
-        }
-        return Integer.parseInt(value.trim());
     }
 
     private void returnToDashboard() {
@@ -122,8 +140,7 @@ public class CreateExamController implements TeacherScreen {
             controller.setUser(Session.getInstance().getCurrentUser());
 
             Stage stage = (Stage) backButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Teacher Dashboard - ExamSystem");
+            UiManager.navigateToApp(stage, root, "Teacher Dashboard - ExamSystem");
         } catch (Exception e) {
             statusLabel.setText("Unable to return: " + e.getMessage());
         }
