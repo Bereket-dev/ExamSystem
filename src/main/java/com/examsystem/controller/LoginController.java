@@ -67,54 +67,68 @@ public class LoginController {
      */
     @FXML
     private void handleLogin() {
-        logger.info("Login attempt started");
-
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-
-        // Validation
-        if (username.isEmpty() || password.isEmpty()) {
-            showError("Username and password are required");
-            logger.warn("Login attempt with empty credentials");
-            return;
-        }
-
         try {
+            logger.info("Login attempt started");
+
+            // Clear previous error
+            errorLabel.setText("");
+
+            String username = usernameField.getText().trim();
+            String password = passwordField.getText();
+
+            // Validation
+            if (username.isEmpty() || password.isEmpty()) {
+                showError("Username and password are required");
+                passwordField.clear();
+                logger.warn("Login attempt with empty credentials");
+                return;
+            }
+
+            logger.info("Attempting to find user: {}", username);
+
             // Try to find user by username
             var userOptional = userRepository.findByUsername(username);
 
             if (userOptional.isEmpty()) {
-                showError("Invalid username or password");
+                showError("Incorrect username or password");
+                passwordField.clear();
                 logger.warn("Login failed: user {} not found", username);
                 return;
             }
 
             User user = userOptional.get();
+            logger.info("User found: {}, checking password", username);
 
             // Simple password verification (in production, use hashing)
             if (!user.getPassword().equals(password)) {
-                showError("Invalid username or password");
+                showError("Incorrect username or password");
+                passwordField.clear();
                 logger.warn("Login failed: incorrect password for user {}", username);
                 return;
             }
 
+            logger.info("Password verified for user: {}", username);
+
             // Check if user is active
             if (!user.isActive()) {
                 showError("User account is inactive");
+                passwordField.clear();
                 logger.warn("Login failed: user {} is inactive", username);
                 return;
             }
 
             // Login successful
+            logger.info("Login successful for user: {}, Role: {}", username, user.getRole());
             Session.getInstance().login(user);
-            logger.info("User {} successfully logged in with role {}", username, user.getRole());
 
             // Navigate based on role
             navigateByRole(user.getRole());
 
         } catch (Exception e) {
-            logger.error("Error during login", e);
-            showError("An error occurred during login. Please try again.");
+            logger.error("Critical error during login", e);
+            e.printStackTrace();
+            showError("Error: " + e.getMessage());
+            passwordField.clear();
         }
     }
 
@@ -158,20 +172,31 @@ public class LoginController {
     private void showDashboard(String dashboardName) {
         try {
             User user = Session.getInstance().getCurrentUser();
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Login Successful");
-            alert.setHeaderText("Welcome!");
-            alert.setContentText(String.format("Welcome %s!\n\nLogged in as: %s\nRole: %s\n\n%s",
-                    user.getFullName(),
+
+            // Show success message
+            Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+            successAlert.setTitle("Login Successful");
+            successAlert.setHeaderText("Welcome " + user.getFullName() + "!");
+            successAlert.setContentText(String.format(
+                    "Username: %s\nRole: %s\n\n%s is loading...",
                     user.getUsername(),
                     user.getRole(),
-                    dashboardName + " loading..."));
-            alert.showAndWait();
+                    dashboardName));
+            successAlert.showAndWait();
 
-            logger.info("Showing dashboard: {}", dashboardName);
-            // TODO: Load actual dashboard FXML
+            logger.info("User {} logged in successfully to {}", user.getUsername(), dashboardName);
+
+            // Clear login form for next use
+            usernameField.clear();
+            passwordField.clear();
+            errorLabel.setText("");
+
+            // TODO: Load actual dashboard FXML based on role
+            // For now, keep login screen visible
+
         } catch (Exception e) {
             logger.error("Error showing dashboard", e);
+            e.printStackTrace();
             showError("Error loading dashboard: " + e.getMessage());
         }
     }
@@ -180,11 +205,11 @@ public class LoginController {
      * Display error message
      */
     private void showError(String message) {
+        logger.error("Login Error: {}", message);
         if (errorLabel != null) {
             errorLabel.setText(message);
-            errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12;");
-        } else {
-            logger.error("Error: {}", message);
+            errorLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-size: 13; -fx-font-weight: bold;");
+            errorLabel.setWrapText(true);
         }
     }
 
