@@ -3,6 +3,9 @@ package com.examsystem.controller;
 import com.examsystem.model.ExamMonitoringEntry;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
+import com.examsystem.network.NetworkManager;
+import com.examsystem.rmi.RMIManager;
+import com.examsystem.rmi.remote.MonitoringSummary;
 import com.examsystem.service.TeacherService;
 import com.examsystem.util.Session;
 import javafx.collections.FXCollections;
@@ -63,7 +66,12 @@ public class MonitoringController implements TeacherScreen {
     private void refresh() {
         var entries = teacherService.getActiveMonitoring(teacher.getTeacherId());
         monitoringListView.setItems(FXCollections.observableArrayList(entries));
-        statusLabel.setText(entries.isEmpty() ? "No active exam attempts." : entries.size() + " active attempt(s).");
+        int tcpClients = NetworkManager.getInstance().getActiveClientCount();
+        MonitoringSummary rmiSummary = RMIManager.getInstance().getMonitoringSummary(teacher.getTeacherId());
+        String base = entries.isEmpty() ? "No active exam attempts." : entries.size() + " active attempt(s).";
+        statusLabel.setText(base + " | TCP clients: " + tcpClients
+                + " | RMI active/submitted: " + rmiSummary.getActiveAttemptCount()
+                + "/" + rmiSummary.getSubmittedReportCount());
     }
 
     private void returnToDashboard() {

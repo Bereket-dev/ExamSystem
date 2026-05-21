@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
  */
 public class AutoSaveThread extends Thread {
     private static final Logger logger = LoggerFactory.getLogger(AutoSaveThread.class);
-    private static final long SAVE_INTERVAL_MS = 30_000;
+    private static final long SAVE_INTERVAL_MS = ConfigManager.getIntProperty("thread.autosave.interval.ms", 30_000);
 
     private final Runnable saveTask;
     private volatile boolean running = true;

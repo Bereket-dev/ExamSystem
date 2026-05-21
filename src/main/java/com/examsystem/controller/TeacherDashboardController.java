@@ -3,7 +3,10 @@ package com.examsystem.controller;
 import com.examsystem.model.Exam;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
+import com.examsystem.network.NetworkManager;
+import com.examsystem.rmi.RMIManager;
 import com.examsystem.service.TeacherService;
+import com.examsystem.util.ConfigManager;
 import com.examsystem.util.Session;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -29,6 +32,9 @@ public class TeacherDashboardController {
 
     @FXML
     private Label statusLabel;
+
+    @FXML
+    private Label networkStatusLabel;
 
     @FXML
     private Button createExamButton;
@@ -96,6 +102,27 @@ public class TeacherDashboardController {
         if (exams.isEmpty()) {
             setStatus("No exams created yet. Use Create Exam to add one.");
         }
+        startTcpServer();
+    }
+
+    private void startTcpServer() {
+        try {
+            NetworkManager network = NetworkManager.getInstance();
+            network.startServer();
+            int port = ConfigManager.getIntProperty("network.server.port", 5000);
+            int clients = network.getActiveClientCount();
+            boolean rmiRunning = RMIManager.getInstance().isServerRunning();
+            int rmiPort = ConfigManager.getIntProperty("rmi.registry.port", 1099);
+            if (networkStatusLabel != null) {
+                networkStatusLabel.setText(String.format(
+                        "TCP: port %d (%d clients) | RMI: port %d (%s)",
+                        port, clients, rmiPort, rmiRunning ? "running" : "stopped"));
+            }
+        } catch (Exception e) {
+            if (networkStatusLabel != null) {
+                networkStatusLabel.setText("TCP Server: failed to start - " + e.getMessage());
+            }
+        }
     }
 
     public Teacher getCurrentTeacher() {
@@ -145,6 +172,8 @@ public class TeacherDashboardController {
 
     private void handleLogout() {
         try {
+            NetworkManager.getInstance().stopServer();
+            RMIManager.getInstance().stopServer();
             Session.getInstance().logout();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();

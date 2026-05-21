@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import com.examsystem.model.User;
 import com.examsystem.repository.UserRepository;
 import com.examsystem.repository.UserRepositoryImpl;
+import com.examsystem.network.NetworkManager;
+import com.examsystem.rmi.RMIManager;
 import com.examsystem.util.Session;
 
 /**
@@ -123,6 +125,8 @@ public class LoginController {
             logger.info("Login successful for user: {}, Role: {}", username, user.getRole());
             Session.getInstance().login(user);
 
+            connectToNetwork(user, username, password);
+
             // Navigate based on role
             navigateByRole(user.getRole());
 
@@ -131,6 +135,34 @@ public class LoginController {
             e.printStackTrace();
             showError("Error: " + e.getMessage());
             passwordField.clear();
+        }
+    }
+
+    private void connectToNetwork(User user, String username, String password) {
+        NetworkManager network = NetworkManager.getInstance();
+        RMIManager rmi = RMIManager.getInstance();
+        try {
+            if (user.getRole() == User.UserRole.TEACHER || user.getRole() == User.UserRole.ADMIN) {
+                network.startServer();
+                rmi.startServer();
+                logger.info("TCP and RMI servers started for {}", user.getRole());
+            }
+            if (user.getRole() == User.UserRole.STUDENT) {
+                boolean tcpOk = network.connectClient();
+                if (tcpOk) {
+                    network.clientLogin(username, password);
+                    logger.info("Student connected to TCP server");
+                }
+                if (rmi.connectClient()) {
+                    rmi.clientLogin(username, password);
+                    logger.info("Student connected to RMI registry");
+                }
+                if (!tcpOk && !rmi.isClientConnected()) {
+                    logger.warn("Student running in offline mode (servers unavailable)");
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Network connection skipped: {}", e.getMessage());
         }
     }
 

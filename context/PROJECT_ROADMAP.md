@@ -48,26 +48,26 @@
 ---
 
 ## Phase 6 - Networking
-- [ ] TCP Server
-- [ ] TCP Client
-- [ ] Client handlers
-- [ ] Multi-client support
-- [ ] Error recovery
+- [x] TCP Server (`ExamServer`)
+- [x] TCP Client (`ExamClient`)
+- [x] Client handlers (`ClientHandler`)
+- [x] Multi-client support
+- [x] Error recovery (reconnect)
 
 ---
 
 ## Phase 7 - RMI
-- [ ] Remote interfaces
-- [ ] RMI server
-- [ ] RMI client
-- [ ] Registry setup
-- [ ] Serialization tests
+- [x] Remote interfaces (`ExamRemoteService`)
+- [x] RMI server (`RMIServer`)
+- [x] RMI client (`RMIClient`)
+- [x] Registry setup
+- [x] Serialization tests
 
 ---
 
 ## Phase 8 - Threading
-- [ ] Timer thread
-- [ ] Auto-save thread
+- [x] Timer thread
+- [x] Auto-save thread
 - [ ] Background loading
 - [ ] Thread pool management
 

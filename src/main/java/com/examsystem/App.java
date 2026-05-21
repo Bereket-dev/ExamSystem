@@ -1,5 +1,7 @@
 package com.examsystem;
 
+import com.examsystem.network.NetworkManager;
+import com.examsystem.rmi.RMIManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -10,8 +12,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Main entry point for the ExamSystem JavaFX application.
- * Phase 3 - Authentication System
- * Loads the login screen for user authentication.
  */
 public class App extends Application {
     private static final Logger logger = LoggerFactory.getLogger(App.class);
@@ -19,9 +19,8 @@ public class App extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            logger.info("Starting ExamSystem Application - Phase 3...");
+            logger.info("Starting ExamSystem Application...");
 
-            // Load login FXML
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();
 
@@ -35,6 +34,13 @@ public class App extends Application {
             logger.error("Error starting application", e);
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void stop() {
+        logger.info("Shutting down ExamSystem...");
+        NetworkManager.getInstance().shutdown();
+        RMIManager.getInstance().shutdown();
     }
 
     public static void main(String[] args) {

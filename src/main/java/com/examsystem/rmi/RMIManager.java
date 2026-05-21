@@ -1,0 +1,131 @@
+package com.examsystem.rmi;
+
+import com.examsystem.model.StudentAnswer;
+import com.examsystem.rmi.client.RMIClient;
+import com.examsystem.rmi.remote.LoginResult;
+import com.examsystem.rmi.remote.MonitoringSummary;
+import com.examsystem.rmi.remote.RemoteAnswerPayload;
+import com.examsystem.rmi.server.RMIServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.rmi.RemoteException;
+
+/**
+ * Central lifecycle manager for RMI server and client.
+ */
+public class RMIManager {
+    private static final Logger logger = LoggerFactory.getLogger(RMIManager.class);
+    private static RMIManager instance;
+
+    private RMIServer rmiServer;
+    private RMIClient rmiClient;
+
+    private RMIManager() {
+    }
+
+    public static synchronized RMIManager getInstance() {
+        if (instance == null) {
+            instance = new RMIManager();
+        }
+        return instance;
+    }
+
+    public synchronized void startServer() {
+        try {
+            if (rmiServer == null) {
+                rmiServer = new RMIServer();
+            }
+            if (!rmiServer.isRunning()) {
+                rmiServer.start();
+            }
+        } catch (RemoteException e) {
+            logger.error("Failed to start RMIServer", e);
+        }
+    }
+
+    public synchronized void stopServer() {
+        if (rmiServer != null) {
+            rmiServer.stop();
+        }
+    }
+
+    public boolean isServerRunning() {
+        return rmiServer != null && rmiServer.isRunning();
+    }
+
+    public synchronized boolean connectClient() {
+        if (rmiClient == null) {
+            rmiClient = new RMIClient();
+        }
+        return rmiClient.connect();
+    }
+
+    public synchronized void disconnectClient() {
+        if (rmiClient != null) {
+            rmiClient.disconnect();
+        }
+    }
+
+    public boolean isClientConnected() {
+        return rmiClient != null && rmiClient.isConnected();
+    }
+
+    public LoginResult clientLogin(String username, String password) {
+        try {
+            if (!connectClient()) {
+                return LoginResult.failure("RMI server unavailable");
+            }
+            return rmiClient.login(username, password);
+        } catch (RemoteException e) {
+            logger.warn("RMI login failed: {}", e.getMessage());
+            return LoginResult.failure(e.getMessage());
+        }
+    }
+
+    public void syncSaveAnswer(StudentAnswer answer) {
+        if (!isClientConnected()) {
+            return;
+        }
+        try {
+            RemoteAnswerPayload payload = new RemoteAnswerPayload();
+            payload.setAttemptId(answer.getAttemptId());
+            payload.setQuestionId(answer.getQuestionId());
+            payload.setSelectedOptionId(answer.getSelectedOptionId());
+            payload.setShortAnswerText(answer.getShortAnswerText());
+            payload.setCorrect(answer.isCorrect());
+            payload.setMarksObtained(answer.getMarksObtained());
+            rmiClient.saveAnswer(payload);
+        } catch (RemoteException e) {
+            logger.warn("RMI save failed, local save retained: {}", e.getMessage());
+        }
+    }
+
+    public void syncSubmitExam(int assignmentId, int totalMarks) {
+        if (!isClientConnected()) {
+            return;
+        }
+        try {
+            rmiClient.submitExam(assignmentId, totalMarks);
+        } catch (RemoteException e) {
+            logger.warn("RMI submit failed, local submit retained: {}", e.getMessage());
+        }
+    }
+
+    public MonitoringSummary getMonitoringSummary(int teacherId) {
+        try {
+            if (!connectClient()) {
+                return new MonitoringSummary(0, 0);
+            }
+            return rmiClient.getMonitoringSummary(teacherId);
+        } catch (RemoteException e) {
+            logger.warn("RMI monitoring fetch failed: {}", e.getMessage());
+            return new MonitoringSummary(0, 0);
+        }
+    }
+
+    public synchronized void shutdown() {
+        stopServer();
+        disconnectClient();
+    }
+}

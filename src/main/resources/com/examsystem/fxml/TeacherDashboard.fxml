@@ -27,6 +27,7 @@
                 <Button fx:id="monitoringButton" text="Live Monitoring" style="-fx-background-color: #d35400; -fx-text-fill: white;" />
                 <Button fx:id="reportsButton" text="Reports" style="-fx-background-color: #16a085; -fx-text-fill: white;" />
             </HBox>
+            <Label fx:id="networkStatusLabel" text="TCP Server: starting..." style="-fx-font-size: 13;" />
             <Label text="Your Exams" style="-fx-font-size: 16; -fx-font-weight: bold;" />
             <ListView fx:id="examListView" prefHeight="400" />
             <Label fx:id="statusLabel" textFill="#c0392b" wrapText="true" />

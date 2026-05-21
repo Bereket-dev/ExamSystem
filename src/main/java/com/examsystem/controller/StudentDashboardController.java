@@ -4,6 +4,8 @@ import com.examsystem.model.AssignedExam;
 import com.examsystem.model.Exam;
 import com.examsystem.model.Student;
 import com.examsystem.model.User;
+import com.examsystem.network.NetworkManager;
+import com.examsystem.rmi.RMIManager;
 import com.examsystem.service.StudentService;
 import com.examsystem.util.Session;
 import javafx.collections.FXCollections;
@@ -168,6 +170,8 @@ public class StudentDashboardController {
 
     private void handleLogout() {
         try {
+            NetworkManager.getInstance().disconnectClient();
+            RMIManager.getInstance().disconnectClient();
             Session.getInstance().logout();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();
