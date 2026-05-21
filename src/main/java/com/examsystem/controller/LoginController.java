@@ -157,7 +157,7 @@ public class LoginController {
                 break;
             case TEACHER:
                 logger.info("Navigating to Teacher Dashboard");
-                showDashboard("Teacher Dashboard");
+                navigateToTeacherDashboard();
                 break;
             case STUDENT:
                 logger.info("Navigating to Student Dashboard");
@@ -165,6 +165,22 @@ public class LoginController {
                 break;
             default:
                 logger.warn("Unknown role: {}", role);
+        }
+    }
+
+    private void navigateToTeacherDashboard() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/TeacherDashboard.fxml"));
+            Parent root = loader.load();
+            TeacherDashboardController controller = loader.getController();
+            controller.setUser(Session.getInstance().getCurrentUser());
+
+            Stage stage = (Stage) loginButton.getScene().getWindow();
+            stage.setScene(new Scene(root, 900, 650));
+            stage.setTitle("Teacher Dashboard - ExamSystem");
+        } catch (Exception e) {
+            logger.error("Error navigating to teacher dashboard", e);
+            showError("Unable to open teacher dashboard: " + e.getMessage());
         }
     }
 

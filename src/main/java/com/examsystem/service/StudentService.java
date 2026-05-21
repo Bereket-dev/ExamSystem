@@ -1,5 +1,6 @@
 package com.examsystem.service;
 
+import com.examsystem.model.AssignedExam;
 import com.examsystem.model.Exam;
 import com.examsystem.model.ExamAttempt;
 import com.examsystem.model.Question;
@@ -7,14 +8,14 @@ import com.examsystem.model.QuestionOption;
 import com.examsystem.model.Student;
 import com.examsystem.model.StudentAnswer;
 import com.examsystem.repository.ExamAttemptRepository;
-import com.examsystem.repository.ExamRepository;
-import com.examsystem.repository.QuestionRepository;
-import com.examsystem.repository.StudentAnswerRepository;
-import com.examsystem.repository.StudentRepository;
 import com.examsystem.repository.ExamAttemptRepositoryImpl;
+import com.examsystem.repository.ExamRepository;
 import com.examsystem.repository.ExamRepositoryImpl;
+import com.examsystem.repository.QuestionRepository;
 import com.examsystem.repository.QuestionRepositoryImpl;
+import com.examsystem.repository.StudentAnswerRepository;
 import com.examsystem.repository.StudentAnswerRepositoryImpl;
+import com.examsystem.repository.StudentRepository;
 import com.examsystem.repository.StudentRepositoryImpl;
 
 import java.util.List;
@@ -47,8 +48,16 @@ public class StudentService {
         return studentRepository.findAssignedExams(studentId);
     }
 
+    public List<AssignedExam> getAssignedExamsWithStatus(int studentId) {
+        return studentRepository.findAssignedExamsWithStatus(studentId);
+    }
+
     public Optional<Integer> findAssignmentId(int studentId, int examId) {
         return studentRepository.findAssignmentId(studentId, examId);
+    }
+
+    public boolean isAssignmentAttempted(int assignmentId) {
+        return studentRepository.isAssignmentAttempted(assignmentId);
     }
 
     public void markAssignmentAttempted(int assignmentId) {

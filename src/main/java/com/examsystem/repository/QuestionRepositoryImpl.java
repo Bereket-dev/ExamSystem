@@ -15,6 +15,9 @@ public class QuestionRepositoryImpl implements QuestionRepository {
 
     private static final String SELECT_QUESTION_BY_EXAM = "SELECT * FROM questions WHERE exam_id = ? ORDER BY sequence_order";
     private static final String SELECT_OPTIONS_BY_QUESTION = "SELECT * FROM options WHERE question_id = ? ORDER BY sequence_order";
+    private static final String INSERT_QUESTION = "INSERT INTO questions (exam_id, question_text, question_type, marks, sequence_order, difficulty_level) VALUES (?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_OPTION = "INSERT INTO options (question_id, option_text, is_correct, sequence_order) VALUES (?, ?, ?, ?)";
+    private static final String COUNT_BY_EXAM = "SELECT COUNT(*) AS count FROM questions WHERE exam_id = ?";
 
     @Override
     public List<Question> findByExamId(int examId) {
@@ -70,5 +73,71 @@ public class QuestionRepositoryImpl implements QuestionRepository {
             logger.error("Error loading options for question", e);
         }
         return list;
+    }
+
+    @Override
+    public void saveQuestion(Question question) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(INSERT_QUESTION, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, question.getExamId());
+            stmt.setString(2, question.getQuestionText());
+            stmt.setString(3, mapQuestionType(question.getQuestionType()));
+            stmt.setInt(4, question.getMarks());
+            stmt.setInt(5, question.getSequenceOrder());
+            stmt.setString(6, question.getDifficultyLevel().name().toLowerCase());
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    question.setQuestionId(rs.getInt(1));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error saving question", e);
+            throw new RuntimeException("Failed to save question", e);
+        }
+    }
+
+    @Override
+    public void saveOption(QuestionOption option) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(INSERT_OPTION, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, option.getQuestionId());
+            stmt.setString(2, option.getOptionText());
+            stmt.setBoolean(3, option.isCorrect());
+            stmt.setInt(4, option.getSequenceOrder());
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    option.setOptionId(rs.getInt(1));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error saving option", e);
+            throw new RuntimeException("Failed to save option", e);
+        }
+    }
+
+    @Override
+    public int countByExamId(int examId) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(COUNT_BY_EXAM)) {
+            stmt.setInt(1, examId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("count");
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error counting questions", e);
+        }
+        return 0;
+    }
+
+    private String mapQuestionType(Question.QuestionType type) {
+        return switch (type) {
+            case MCQ -> "mcq";
+            case TRUE_FALSE -> "true_false";
+            case SHORT_ANSWER -> "short_answer";
+        };
     }
 }

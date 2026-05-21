@@ -1,5 +1,6 @@
 package com.examsystem.controller;
 
+import com.examsystem.model.AssignedExam;
 import com.examsystem.model.Exam;
 import com.examsystem.model.Student;
 import com.examsystem.model.User;
@@ -15,7 +16,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.util.List;
@@ -26,7 +26,7 @@ public class StudentDashboardController {
     private Label welcomeLabel;
 
     @FXML
-    private ListView<Exam> examListView;
+    private ListView<AssignedExam> examListView;
 
     @FXML
     private Label examNameLabel;
@@ -58,19 +58,22 @@ public class StudentDashboardController {
     private final StudentService studentService = new StudentService();
     private User currentUser;
     private Student currentStudent;
-    private ObservableList<Exam> assignedExams = FXCollections.observableArrayList();
+    private ObservableList<AssignedExam> assignedExams = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
         examListView.setItems(assignedExams);
         examListView.setCellFactory(listView -> new ListCell<>() {
             @Override
-            protected void updateItem(Exam exam, boolean empty) {
-                super.updateItem(exam, empty);
-                if (empty || exam == null) {
+            protected void updateItem(AssignedExam item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
                     setText(null);
                 } else {
-                    setText(String.format("%s [%s] - %s", exam.getExamName(), exam.getSubject(), exam.getExamDate()));
+                    Exam exam = item.getExam();
+                    String status = item.isAttempted() ? " [Completed]" : " [Available]";
+                    setText(String.format("%s [%s] - %s%s", exam.getExamName(), exam.getSubject(),
+                            exam.getExamDate() == null ? "TBD" : exam.getExamDate(), status));
                 }
             }
         });
@@ -108,7 +111,7 @@ public class StudentDashboardController {
         }
 
         currentStudent = studentOptional.get();
-        List<Exam> exams = studentService.getAssignedExams(currentStudent.getStudentId());
+        List<AssignedExam> exams = studentService.getAssignedExamsWithStatus(currentStudent.getStudentId());
         assignedExams.addAll(exams);
 
         if (exams.isEmpty()) {
@@ -118,31 +121,33 @@ public class StudentDashboardController {
         }
     }
 
-    private void updateExamDetails(Exam exam) {
+    private void updateExamDetails(AssignedExam assignedExam) {
+        Exam exam = assignedExam.getExam();
         examNameLabel.setText(exam.getExamName());
         examSubjectLabel.setText("Subject: " + exam.getSubject());
         examDateLabel.setText("Date: " + (exam.getExamDate() == null ? "TBD" : exam.getExamDate().toString()));
         examDurationLabel.setText("Duration: " + exam.getDurationMinutes() + " minutes");
         examDescriptionLabel
                 .setText(exam.getDescription() == null ? "No description provided." : exam.getDescription());
-        examStatusLabel.setText(exam.isPublished() ? "Status: Published" : "Status: Draft");
+        String publishStatus = exam.isPublished() ? "Published" : "Draft";
+        String attemptStatus = assignedExam.isAttempted() ? "Completed" : "Not started";
+        examStatusLabel.setText("Status: " + publishStatus + " | Attempt: " + attemptStatus);
+        startExamButton.setDisable(assignedExam.isAttempted());
     }
 
     private void handleStartExam() {
-        Exam selectedExam = examListView.getSelectionModel().getSelectedItem();
-        if (selectedExam == null) {
+        AssignedExam selected = examListView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
             setStatus("Please select an exam to start.");
             return;
         }
 
-        Optional<Integer> assignmentId = studentService.findAssignmentId(currentStudent.getStudentId(),
-                selectedExam.getExamId());
-        if (assignmentId.isEmpty()) {
-            setStatus("Selected exam is not assigned to this student.");
+        if (selected.isAttempted()) {
+            setStatus("You have already completed this exam.");
             return;
         }
 
-        openExamScreen(selectedExam, assignmentId.get());
+        openExamScreen(selected.getExam(), selected.getAssignmentId());
     }
 
     private void openExamScreen(Exam exam, int assignmentId) {

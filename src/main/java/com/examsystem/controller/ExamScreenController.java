@@ -6,14 +6,21 @@ import com.examsystem.model.QuestionOption;
 import com.examsystem.model.StudentAnswer;
 import com.examsystem.model.User;
 import com.examsystem.service.StudentService;
+import com.examsystem.util.AutoSaveThread;
 import com.examsystem.util.Session;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -69,6 +76,7 @@ public class ExamScreenController {
     private Timeline examTimer;
     private int remainingSeconds;
     private ToggleGroup currentOptionGroup = new ToggleGroup();
+    private AutoSaveThread autoSaveThread;
 
     @FXML
     public void initialize() {
@@ -86,6 +94,12 @@ public class ExamScreenController {
         var attempt = studentService.createOrRetrieveAttempt(assignmentId);
         this.attemptId = attempt.getAttemptId();
 
+        if ("submitted".equalsIgnoreCase(attempt.getSubmissionStatus())) {
+            feedbackLabel.setText("This exam has already been submitted.");
+            disableExamControls();
+            return;
+        }
+
         this.questions = studentService.getQuestions(exam.getExamId());
         studentService.getAnswersByAttempt(attemptId)
                 .forEach(answer -> savedAnswers.put(answer.getQuestionId(), answer));
@@ -97,6 +111,8 @@ public class ExamScreenController {
         }
 
         startTimer();
+        startAutoSave();
+
         if (!questions.isEmpty()) {
             displayQuestion(0);
         } else {
@@ -104,11 +120,20 @@ public class ExamScreenController {
             optionsContainer.getChildren().clear();
             shortAnswerField.setVisible(false);
             shortAnswerField.setManaged(false);
-            previousButton.setDisable(true);
-            nextButton.setDisable(true);
-            saveButton.setDisable(true);
-            submitButton.setDisable(true);
+            disableExamControls();
         }
+    }
+
+    private void startAutoSave() {
+        autoSaveThread = new AutoSaveThread(() -> {
+            try {
+                saveCurrentAnswerSilent();
+                Platform.runLater(() -> feedbackLabel.setText("Auto-saved at " + LocalDateTime.now().toLocalTime()));
+            } catch (Exception e) {
+                Platform.runLater(() -> feedbackLabel.setText("Auto-save failed."));
+            }
+        });
+        autoSaveThread.start();
     }
 
     private void startTimer() {
@@ -179,12 +204,22 @@ public class ExamScreenController {
     }
 
     private void saveCurrentAnswer() {
+        saveCurrentAnswerSilent();
+        feedbackLabel.setText("Answer saved.");
+    }
+
+    private void saveCurrentAnswerSilent() {
         if (questions.isEmpty()) {
-            feedbackLabel.setText("No question to save.");
             return;
         }
 
         Question currentQuestion = questions.get(currentIndex);
+        StudentAnswer answer = buildAnswerForQuestion(currentQuestion);
+        studentService.saveStudentAnswer(answer);
+        savedAnswers.put(currentQuestion.getQuestionId(), answer);
+    }
+
+    private StudentAnswer buildAnswerForQuestion(Question currentQuestion) {
         StudentAnswer answer = new StudentAnswer();
         answer.setAttemptId(attemptId);
         answer.setQuestionId(currentQuestion.getQuestionId());
@@ -209,17 +244,12 @@ public class ExamScreenController {
                 answer.setMarksObtained(selectedOption.isCorrect() ? currentQuestion.getMarks() : 0);
             }
         }
-
-        studentService.saveStudentAnswer(answer);
-        savedAnswers.put(currentQuestion.getQuestionId(), answer);
-        feedbackLabel.setText("Answer saved.");
+        return answer;
     }
 
     private void submitExam() {
+        stopBackgroundTasks();
         saveCurrentAnswer();
-        if (examTimer != null) {
-            examTimer.stop();
-        }
 
         int totalMarks = studentService.getAnswersByAttempt(attemptId)
                 .stream()
@@ -239,13 +269,22 @@ public class ExamScreenController {
         studentService.updateAttempt(attempt);
         studentService.markAssignmentAttempted(assignmentId);
 
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Exam Submitted");
-        alert.setHeaderText("Your exam has been submitted successfully.");
-        alert.setContentText("Total marks earned: " + totalMarks);
-        alert.showAndWait();
+        openResultScreen(totalMarks);
+    }
 
-        returnToDashboard();
+    private void openResultScreen(int totalMarks) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/ResultScreen.fxml"));
+            Parent root = loader.load();
+            ResultScreenController controller = loader.getController();
+            controller.setResult(exam, totalMarks, exam.getTotalMarks());
+
+            Stage stage = (Stage) submitButton.getScene().getWindow();
+            stage.setScene(new Scene(root, 900, 650));
+            stage.setTitle("Exam Results - ExamSystem");
+        } catch (Exception e) {
+            feedbackLabel.setText("Unable to open results: " + e.getMessage());
+        }
     }
 
     private void autoSubmit() {
@@ -253,20 +292,19 @@ public class ExamScreenController {
         submitExam();
     }
 
-    private void returnToDashboard() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/StudentDashboard.fxml"));
-            Parent root = loader.load();
-            StudentDashboardController controller = loader.getController();
-            User currentUser = Session.getInstance().getCurrentUser();
-            controller.setUser(currentUser);
-
-            Stage stage = (Stage) submitButton.getScene().getWindow();
-            stage.setScene(new Scene(root, 900, 650));
-            stage.setTitle("Student Dashboard");
-        } catch (Exception e) {
-            feedbackLabel.setText("Unable to return to dashboard: " + e.getMessage());
-            e.printStackTrace();
+    private void stopBackgroundTasks() {
+        if (examTimer != null) {
+            examTimer.stop();
         }
+        if (autoSaveThread != null) {
+            autoSaveThread.shutdown();
+        }
+    }
+
+    private void disableExamControls() {
+        previousButton.setDisable(true);
+        nextButton.setDisable(true);
+        saveButton.setDisable(true);
+        submitButton.setDisable(true);
     }
 }

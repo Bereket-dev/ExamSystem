@@ -1,6 +1,7 @@
 package com.examsystem.repository;
 
 import com.examsystem.db.DatabaseConnection;
+import com.examsystem.model.AssignedExam;
 import com.examsystem.model.Exam;
 import com.examsystem.model.Student;
 import org.slf4j.Logger;
@@ -17,7 +18,11 @@ public class StudentRepositoryImpl implements StudentRepository {
     private static final String SELECT_BY_USER = "SELECT * FROM students WHERE user_id = ?";
     private static final String SELECT_STUDENT_ID = "SELECT student_id FROM students WHERE user_id = ?";
     private static final String SELECT_ASSIGNED_EXAMS = "SELECT e.* FROM exams e JOIN student_exam_assignments a ON e.exam_id = a.exam_id WHERE a.student_id = ? AND e.is_published = TRUE ORDER BY e.exam_date";
+    private static final String SELECT_ASSIGNED_WITH_STATUS = "SELECT e.*, a.assignment_id, a.is_attempted FROM exams e JOIN student_exam_assignments a ON e.exam_id = a.exam_id WHERE a.student_id = ? AND e.is_published = TRUE ORDER BY e.exam_date";
+    private static final String SELECT_ALL_STUDENTS = "SELECT * FROM students ORDER BY student_id";
     private static final String SELECT_ASSIGNMENT_ID = "SELECT assignment_id FROM student_exam_assignments WHERE student_id = ? AND exam_id = ? LIMIT 1";
+    private static final String SELECT_ASSIGNMENT_ATTEMPTED = "SELECT is_attempted FROM student_exam_assignments WHERE assignment_id = ?";
+    private static final String INSERT_ASSIGNMENT = "INSERT INTO student_exam_assignments (exam_id, student_id, is_attempted) VALUES (?, ?, FALSE)";
     private static final String UPDATE_ASSIGNMENT_ATTEMPTED = "UPDATE student_exam_assignments SET is_attempted = TRUE WHERE assignment_id = ?";
 
     @Override
@@ -76,6 +81,47 @@ public class StudentRepositoryImpl implements StudentRepository {
     }
 
     @Override
+    public List<AssignedExam> findAssignedExamsWithStatus(int studentId) {
+        List<AssignedExam> assigned = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(SELECT_ASSIGNED_WITH_STATUS)) {
+            stmt.setInt(1, studentId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Exam exam = mapResultSetToExam(rs);
+                    int assignmentId = rs.getInt("assignment_id");
+                    boolean attempted = rs.getBoolean("is_attempted");
+                    assigned.add(new AssignedExam(exam, assignmentId, attempted));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error finding assigned exams with status", e);
+        }
+        return assigned;
+    }
+
+    @Override
+    public List<Student> findAll() {
+        List<Student> students = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(SELECT_ALL_STUDENTS)) {
+            while (rs.next()) {
+                Student student = new Student();
+                student.setStudentId(rs.getInt("student_id"));
+                student.setUserId(rs.getInt("user_id"));
+                student.setEnrollmentNumber(rs.getString("enrollment_number"));
+                student.setDepartment(rs.getString("department"));
+                student.setSemester(rs.getInt("semester"));
+                students.add(student);
+            }
+        } catch (SQLException e) {
+            logger.error("Error finding all students", e);
+        }
+        return students;
+    }
+
+    @Override
     public Optional<Integer> findAssignmentId(int studentId, int examId) {
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(SELECT_ASSIGNMENT_ID)) {
@@ -90,6 +136,35 @@ public class StudentRepositoryImpl implements StudentRepository {
             logger.error("Error finding assignment id", e);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public boolean isAssignmentAttempted(int assignmentId) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(SELECT_ASSIGNMENT_ATTEMPTED)) {
+            stmt.setInt(1, assignmentId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBoolean("is_attempted");
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error checking assignment attempted status", e);
+        }
+        return false;
+    }
+
+    @Override
+    public void assignExamToStudent(int examId, int studentId) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(INSERT_ASSIGNMENT)) {
+            stmt.setInt(1, examId);
+            stmt.setInt(2, studentId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error assigning exam to student", e);
+            throw new RuntimeException("Failed to assign exam", e);
+        }
     }
 
     @Override
