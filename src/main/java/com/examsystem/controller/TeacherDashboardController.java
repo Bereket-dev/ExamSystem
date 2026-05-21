@@ -6,6 +6,7 @@ import com.examsystem.model.User;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
 import com.examsystem.service.TeacherService;
+import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.ConfigManager;
 import com.examsystem.util.Session;
 import javafx.collections.FXCollections;
@@ -91,18 +92,31 @@ public class TeacherDashboardController {
 
     private void loadDashboard() {
         teacherExams.clear();
-        Optional<Teacher> teacherOpt = teacherService.findByUserId(currentUser.getUserId());
-        if (teacherOpt.isEmpty()) {
-            setStatus("Teacher profile not found.");
-            return;
-        }
-        currentTeacher = teacherOpt.get();
-        List<Exam> exams = teacherService.getExamsByTeacher(currentTeacher.getTeacherId());
-        teacherExams.addAll(exams);
-        if (exams.isEmpty()) {
-            setStatus("No exams created yet. Use Create Exam to add one.");
-        }
-        startTcpServer();
+        setStatus("Loading dashboard...");
+        BackgroundLoader.load(
+                () -> {
+                    Optional<Teacher> teacherOpt = teacherService.findByUserId(currentUser.getUserId());
+                    if (teacherOpt.isEmpty()) {
+                        throw new IllegalStateException("Teacher profile not found.");
+                    }
+                    Teacher teacher = teacherOpt.get();
+                    List<Exam> exams = teacherService.getExamsByTeacher(teacher.getTeacherId());
+                    return new TeacherDashboardData(teacher, exams);
+                },
+                data -> {
+                    currentTeacher = data.teacher();
+                    teacherExams.setAll(data.exams());
+                    if (data.exams().isEmpty()) {
+                        setStatus("No exams created yet. Use Create Exam to add one.");
+                    } else {
+                        setStatus("");
+                    }
+                    startTcpServer();
+                },
+                error -> setStatus(error.getMessage()));
+    }
+
+    private record TeacherDashboardData(Teacher teacher, List<Exam> exams) {
     }
 
     private void startTcpServer() {

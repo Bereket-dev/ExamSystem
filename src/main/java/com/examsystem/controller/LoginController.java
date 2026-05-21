@@ -13,7 +13,9 @@ import com.examsystem.repository.UserRepository;
 import com.examsystem.repository.UserRepositoryImpl;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
+import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.Session;
+import javafx.application.Platform;
 
 /**
  * Controller for the Login screen.
@@ -71,70 +73,54 @@ public class LoginController {
      */
     @FXML
     private void handleLogin() {
+        errorLabel.setText("");
+        String username = usernameField.getText().trim();
+        String password = passwordField.getText();
+
+        if (username.isEmpty() || password.isEmpty()) {
+            showError("Username and password are required");
+            passwordField.clear();
+            return;
+        }
+
+        loginButton.setDisable(true);
+        logger.info("Login attempt started on background thread");
+
+        BackgroundLoader.load(
+                () -> authenticateUser(username, password),
+                user -> Platform.runLater(() -> completeLogin(user, username, password)),
+                error -> Platform.runLater(() -> {
+                    loginButton.setDisable(false);
+                    showError("Error: " + error.getMessage());
+                    passwordField.clear();
+                }));
+    }
+
+    private User authenticateUser(String username, String password) {
+        var userOptional = userRepository.findByUsername(username);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("Incorrect username or password");
+        }
+        User user = userOptional.get();
+        if (!user.getPassword().equals(password)) {
+            throw new IllegalArgumentException("Incorrect username or password");
+        }
+        if (!user.isActive()) {
+            throw new IllegalArgumentException("User account is inactive");
+        }
+        return user;
+    }
+
+    private void completeLogin(User user, String username, String password) {
         try {
-            logger.info("Login attempt started");
-
-            // Clear previous error
-            errorLabel.setText("");
-
-            String username = usernameField.getText().trim();
-            String password = passwordField.getText();
-
-            // Validation
-            if (username.isEmpty() || password.isEmpty()) {
-                showError("Username and password are required");
-                passwordField.clear();
-                logger.warn("Login attempt with empty credentials");
-                return;
-            }
-
-            logger.info("Attempting to find user: {}", username);
-
-            // Try to find user by username
-            var userOptional = userRepository.findByUsername(username);
-
-            if (userOptional.isEmpty()) {
-                showError("Incorrect username or password");
-                passwordField.clear();
-                logger.warn("Login failed: user {} not found", username);
-                return;
-            }
-
-            User user = userOptional.get();
-            logger.info("User found: {}, checking password", username);
-
-            // Simple password verification (in production, use hashing)
-            if (!user.getPassword().equals(password)) {
-                showError("Incorrect username or password");
-                passwordField.clear();
-                logger.warn("Login failed: incorrect password for user {}", username);
-                return;
-            }
-
-            logger.info("Password verified for user: {}", username);
-
-            // Check if user is active
-            if (!user.isActive()) {
-                showError("User account is inactive");
-                passwordField.clear();
-                logger.warn("Login failed: user {} is inactive", username);
-                return;
-            }
-
-            // Login successful
-            logger.info("Login successful for user: {}, Role: {}", username, user.getRole());
             Session.getInstance().login(user);
-
             connectToNetwork(user, username, password);
-
-            // Navigate based on role
             navigateByRole(user.getRole());
-
         } catch (Exception e) {
-            logger.error("Critical error during login", e);
-            e.printStackTrace();
             showError("Error: " + e.getMessage());
             passwordField.clear();
+        } finally {
+            loginButton.setDisable(false);
         }
     }
 

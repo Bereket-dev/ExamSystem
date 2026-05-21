@@ -4,6 +4,7 @@ import com.examsystem.model.ExamReportEntry;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.service.TeacherService;
+import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.Session;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -64,17 +65,22 @@ public class ReportsController implements TeacherScreen {
     }
 
     private void refresh() {
-        var reports = teacherService.getSubmittedReports(teacher.getTeacherId());
-        reportListView.setItems(FXCollections.observableArrayList(reports));
-
-        if (reports.isEmpty()) {
-            summaryLabel.setText("No submitted exams yet.");
-            statusLabel.setText("");
-        } else {
-            double avg = reports.stream().mapToDouble(ExamReportEntry::getPercentage).average().orElse(0);
-            summaryLabel.setText(String.format("Total submissions: %d | Average score: %.1f%%", reports.size(), avg));
-            statusLabel.setText("Reports generated successfully.");
-        }
+        statusLabel.setText("Generating reports...");
+        BackgroundLoader.load(
+                () -> teacherService.getSubmittedReports(teacher.getTeacherId()),
+                reports -> {
+                    reportListView.setItems(FXCollections.observableArrayList(reports));
+                    if (reports.isEmpty()) {
+                        summaryLabel.setText("No submitted exams yet.");
+                        statusLabel.setText("");
+                    } else {
+                        double avg = reports.stream().mapToDouble(ExamReportEntry::getPercentage).average().orElse(0);
+                        summaryLabel.setText(String.format("Total submissions: %d | Average score: %.1f%%",
+                                reports.size(), avg));
+                        statusLabel.setText("Reports generated successfully.");
+                    }
+                },
+                error -> statusLabel.setText("Failed to generate reports: " + error.getMessage()));
     }
 
     private void returnToDashboard() {

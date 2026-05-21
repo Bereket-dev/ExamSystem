@@ -2,6 +2,7 @@ package com.examsystem;
 
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
+import com.examsystem.util.ThreadPoolManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -41,6 +42,7 @@ public class App extends Application {
         logger.info("Shutting down ExamSystem...");
         NetworkManager.getInstance().shutdown();
         RMIManager.getInstance().shutdown();
+        ThreadPoolManager.getInstance().shutdown();
     }
 
     public static void main(String[] args) {

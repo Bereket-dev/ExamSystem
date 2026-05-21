@@ -7,6 +7,7 @@ import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
 import com.examsystem.rmi.remote.MonitoringSummary;
 import com.examsystem.service.TeacherService;
+import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.Session;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -64,14 +65,30 @@ public class MonitoringController implements TeacherScreen {
     }
 
     private void refresh() {
-        var entries = teacherService.getActiveMonitoring(teacher.getTeacherId());
-        monitoringListView.setItems(FXCollections.observableArrayList(entries));
-        int tcpClients = NetworkManager.getInstance().getActiveClientCount();
-        MonitoringSummary rmiSummary = RMIManager.getInstance().getMonitoringSummary(teacher.getTeacherId());
-        String base = entries.isEmpty() ? "No active exam attempts." : entries.size() + " active attempt(s).";
-        statusLabel.setText(base + " | TCP clients: " + tcpClients
-                + " | RMI active/submitted: " + rmiSummary.getActiveAttemptCount()
-                + "/" + rmiSummary.getSubmittedReportCount());
+        statusLabel.setText("Loading monitoring data...");
+        BackgroundLoader.load(
+                () -> {
+                    var entries = teacherService.getActiveMonitoring(teacher.getTeacherId());
+                    int tcpClients = NetworkManager.getInstance().getActiveClientCount();
+                    MonitoringSummary rmiSummary = RMIManager.getInstance().getMonitoringSummary(teacher.getTeacherId());
+                    return new MonitoringData(entries, tcpClients, rmiSummary);
+                },
+                data -> {
+                    monitoringListView.setItems(FXCollections.observableArrayList(data.entries()));
+                    String base = data.entries().isEmpty()
+                            ? "No active exam attempts."
+                            : data.entries().size() + " active attempt(s).";
+                    statusLabel.setText(base + " | TCP clients: " + data.tcpClients()
+                            + " | RMI active/submitted: " + data.rmiSummary().getActiveAttemptCount()
+                            + "/" + data.rmiSummary().getSubmittedReportCount());
+                },
+                error -> statusLabel.setText("Failed to load: " + error.getMessage()));
+    }
+
+    private record MonitoringData(
+            java.util.List<ExamMonitoringEntry> entries,
+            int tcpClients,
+            MonitoringSummary rmiSummary) {
     }
 
     private void returnToDashboard() {

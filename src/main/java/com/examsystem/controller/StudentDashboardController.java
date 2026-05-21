@@ -7,6 +7,7 @@ import com.examsystem.model.User;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
 import com.examsystem.service.StudentService;
+import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.Session;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -101,26 +102,37 @@ public class StudentDashboardController {
 
     private void loadDashboard() {
         assignedExams.clear();
-        if (currentUser == null) {
-            setStatus("Student information is not available.");
-            return;
-        }
+        setStatus("Loading exams...");
+        startExamButton.setDisable(true);
 
-        Optional<Student> studentOptional = studentService.findByUserId(currentUser.getUserId());
-        if (studentOptional.isEmpty()) {
-            setStatus("Student profile not found for user.");
-            return;
-        }
-
-        currentStudent = studentOptional.get();
-        List<AssignedExam> exams = studentService.getAssignedExamsWithStatus(currentStudent.getStudentId());
-        assignedExams.addAll(exams);
-
-        if (exams.isEmpty()) {
-            setStatus("No assigned exams available right now.");
-        } else {
-            examListView.getSelectionModel().selectFirst();
-        }
+        BackgroundLoader.load(
+                () -> {
+                    if (currentUser == null) {
+                        throw new IllegalStateException("Student information is not available.");
+                    }
+                    Optional<Student> studentOptional = studentService.findByUserId(currentUser.getUserId());
+                    if (studentOptional.isEmpty()) {
+                        throw new IllegalStateException("Student profile not found for user.");
+                    }
+                    Student student = studentOptional.get();
+                    List<AssignedExam> exams = studentService.getAssignedExamsWithStatus(student.getStudentId());
+                    return new DashboardData(student, exams);
+                },
+                data -> {
+                    currentStudent = data.student();
+                    assignedExams.setAll(data.exams());
+                    startExamButton.setDisable(false);
+                    if (data.exams().isEmpty()) {
+                        setStatus("No assigned exams available right now.");
+                    } else {
+                        setStatus("");
+                        examListView.getSelectionModel().selectFirst();
+                    }
+                },
+                error -> {
+                    startExamButton.setDisable(false);
+                    setStatus(error.getMessage());
+                });
     }
 
     private void updateExamDetails(AssignedExam assignedExam) {
@@ -188,5 +200,8 @@ public class StudentDashboardController {
         if (statusLabel != null) {
             statusLabel.setText(message);
         }
+    }
+
+    private record DashboardData(Student student, List<AssignedExam> exams) {
     }
 }

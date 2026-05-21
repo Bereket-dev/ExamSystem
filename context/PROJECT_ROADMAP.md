@@ -66,10 +66,10 @@
 ---
 
 ## Phase 8 - Threading
-- [x] Timer thread
-- [x] Auto-save thread
-- [ ] Background loading
-- [ ] Thread pool management
+- [x] Timer thread (`ExamTimerThread`)
+- [x] Auto-save thread (`AutoSaveThread`)
+- [x] Background loading (`BackgroundLoader`)
+- [x] Thread pool management (`ThreadPoolManager`)
 
 ---
 
