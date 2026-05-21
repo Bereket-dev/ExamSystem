@@ -21,7 +21,7 @@ public class DatabaseConnection {
     private static final int DB_PORT = 3306;
     private static final String DB_NAME = "exam_system";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "1234"; // Configure as needed
+    private static final String DB_PASSWORD = "password"; // Configure as needed
     private static final int MAX_POOL_SIZE = 10;
     private static final int MIN_IDLE = 5;
 
