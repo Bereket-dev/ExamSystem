@@ -1,9 +1,13 @@
 package com.examsystem.controller;
 
+import com.examsystem.model.AssignedExam;
 import com.examsystem.model.Exam;
 import com.examsystem.model.Student;
 import com.examsystem.model.User;
+import com.examsystem.network.NetworkManager;
+import com.examsystem.rmi.RMIManager;
 import com.examsystem.service.StudentService;
+import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.Session;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -15,7 +19,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.util.List;
@@ -26,7 +29,7 @@ public class StudentDashboardController {
     private Label welcomeLabel;
 
     @FXML
-    private ListView<Exam> examListView;
+    private ListView<AssignedExam> examListView;
 
     @FXML
     private Label examNameLabel;
@@ -58,19 +61,22 @@ public class StudentDashboardController {
     private final StudentService studentService = new StudentService();
     private User currentUser;
     private Student currentStudent;
-    private ObservableList<Exam> assignedExams = FXCollections.observableArrayList();
+    private ObservableList<AssignedExam> assignedExams = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
         examListView.setItems(assignedExams);
         examListView.setCellFactory(listView -> new ListCell<>() {
             @Override
-            protected void updateItem(Exam exam, boolean empty) {
-                super.updateItem(exam, empty);
-                if (empty || exam == null) {
+            protected void updateItem(AssignedExam item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
                     setText(null);
                 } else {
-                    setText(String.format("%s [%s] - %s", exam.getExamName(), exam.getSubject(), exam.getExamDate()));
+                    Exam exam = item.getExam();
+                    String status = item.isAttempted() ? " [Completed]" : " [Available]";
+                    setText(String.format("%s [%s] - %s%s", exam.getExamName(), exam.getSubject(),
+                            exam.getExamDate() == null ? "TBD" : exam.getExamDate(), status));
                 }
             }
         });
@@ -96,53 +102,66 @@ public class StudentDashboardController {
 
     private void loadDashboard() {
         assignedExams.clear();
-        if (currentUser == null) {
-            setStatus("Student information is not available.");
-            return;
-        }
+        setStatus("Loading exams...");
+        startExamButton.setDisable(true);
 
-        Optional<Student> studentOptional = studentService.findByUserId(currentUser.getUserId());
-        if (studentOptional.isEmpty()) {
-            setStatus("Student profile not found for user.");
-            return;
-        }
-
-        currentStudent = studentOptional.get();
-        List<Exam> exams = studentService.getAssignedExams(currentStudent.getStudentId());
-        assignedExams.addAll(exams);
-
-        if (exams.isEmpty()) {
-            setStatus("No assigned exams available right now.");
-        } else {
-            examListView.getSelectionModel().selectFirst();
-        }
+        BackgroundLoader.load(
+                () -> {
+                    if (currentUser == null) {
+                        throw new IllegalStateException("Student information is not available.");
+                    }
+                    Optional<Student> studentOptional = studentService.findByUserId(currentUser.getUserId());
+                    if (studentOptional.isEmpty()) {
+                        throw new IllegalStateException("Student profile not found for user.");
+                    }
+                    Student student = studentOptional.get();
+                    List<AssignedExam> exams = studentService.getAssignedExamsWithStatus(student.getStudentId());
+                    return new DashboardData(student, exams);
+                },
+                data -> {
+                    currentStudent = data.student();
+                    assignedExams.setAll(data.exams());
+                    startExamButton.setDisable(false);
+                    if (data.exams().isEmpty()) {
+                        setStatus("No assigned exams available right now.");
+                    } else {
+                        setStatus("");
+                        examListView.getSelectionModel().selectFirst();
+                    }
+                },
+                error -> {
+                    startExamButton.setDisable(false);
+                    setStatus(error.getMessage());
+                });
     }
 
-    private void updateExamDetails(Exam exam) {
+    private void updateExamDetails(AssignedExam assignedExam) {
+        Exam exam = assignedExam.getExam();
         examNameLabel.setText(exam.getExamName());
         examSubjectLabel.setText("Subject: " + exam.getSubject());
         examDateLabel.setText("Date: " + (exam.getExamDate() == null ? "TBD" : exam.getExamDate().toString()));
         examDurationLabel.setText("Duration: " + exam.getDurationMinutes() + " minutes");
         examDescriptionLabel
                 .setText(exam.getDescription() == null ? "No description provided." : exam.getDescription());
-        examStatusLabel.setText(exam.isPublished() ? "Status: Published" : "Status: Draft");
+        String publishStatus = exam.isPublished() ? "Published" : "Draft";
+        String attemptStatus = assignedExam.isAttempted() ? "Completed" : "Not started";
+        examStatusLabel.setText("Status: " + publishStatus + " | Attempt: " + attemptStatus);
+        startExamButton.setDisable(assignedExam.isAttempted());
     }
 
     private void handleStartExam() {
-        Exam selectedExam = examListView.getSelectionModel().getSelectedItem();
-        if (selectedExam == null) {
+        AssignedExam selected = examListView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
             setStatus("Please select an exam to start.");
             return;
         }
 
-        Optional<Integer> assignmentId = studentService.findAssignmentId(currentStudent.getStudentId(),
-                selectedExam.getExamId());
-        if (assignmentId.isEmpty()) {
-            setStatus("Selected exam is not assigned to this student.");
+        if (selected.isAttempted()) {
+            setStatus("You have already completed this exam.");
             return;
         }
 
-        openExamScreen(selectedExam, assignmentId.get());
+        openExamScreen(selected.getExam(), selected.getAssignmentId());
     }
 
     private void openExamScreen(Exam exam, int assignmentId) {
@@ -163,6 +182,8 @@ public class StudentDashboardController {
 
     private void handleLogout() {
         try {
+            NetworkManager.getInstance().disconnectClient();
+            RMIManager.getInstance().disconnectClient();
             Session.getInstance().logout();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();
@@ -179,5 +200,8 @@ public class StudentDashboardController {
         if (statusLabel != null) {
             statusLabel.setText(message);
         }
+    }
+
+    private record DashboardData(Student student, List<AssignedExam> exams) {
     }
 }

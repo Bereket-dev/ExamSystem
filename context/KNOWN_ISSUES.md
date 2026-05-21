@@ -2,10 +2,10 @@
 
 | Issue | Status | Solution |
 |------|--------|----------|
-| RMI timeout on slow LAN | Open | Add retry logic |
-| Auto-save race condition | Open | Synchronization needed |
-| JavaFX freeze during DB load | Fixed | Background threads |
-| Socket disconnect handling | Open | Reconnection system |
+| RMI timeout on slow LAN | Fixed | Retry logic in `RMIClient` |
+| Auto-save race condition | Fixed | `synchronized` save lock in `ExamScreenController` |
+| JavaFX freeze during DB load | Fixed | `BackgroundLoader` + `ThreadPoolManager` |
+| Socket disconnect handling | Fixed | Reconnection in `ExamClient` |
 
 ---
 

@@ -11,7 +11,11 @@ import org.slf4j.LoggerFactory;
 import com.examsystem.model.User;
 import com.examsystem.repository.UserRepository;
 import com.examsystem.repository.UserRepositoryImpl;
+import com.examsystem.network.NetworkManager;
+import com.examsystem.rmi.RMIManager;
+import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.Session;
+import javafx.application.Platform;
 
 /**
  * Controller for the Login screen.
@@ -69,68 +73,82 @@ public class LoginController {
      */
     @FXML
     private void handleLogin() {
+        errorLabel.setText("");
+        String username = usernameField.getText().trim();
+        String password = passwordField.getText();
+
+        if (username.isEmpty() || password.isEmpty()) {
+            showError("Username and password are required");
+            passwordField.clear();
+            return;
+        }
+
+        loginButton.setDisable(true);
+        logger.info("Login attempt started on background thread");
+
+        BackgroundLoader.load(
+                () -> authenticateUser(username, password),
+                user -> Platform.runLater(() -> completeLogin(user, username, password)),
+                error -> Platform.runLater(() -> {
+                    loginButton.setDisable(false);
+                    showError("Error: " + error.getMessage());
+                    passwordField.clear();
+                }));
+    }
+
+    private User authenticateUser(String username, String password) {
+        var userOptional = userRepository.findByUsername(username);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("Incorrect username or password");
+        }
+        User user = userOptional.get();
+        if (!user.getPassword().equals(password)) {
+            throw new IllegalArgumentException("Incorrect username or password");
+        }
+        if (!user.isActive()) {
+            throw new IllegalArgumentException("User account is inactive");
+        }
+        return user;
+    }
+
+    private void completeLogin(User user, String username, String password) {
         try {
-            logger.info("Login attempt started");
-
-            // Clear previous error
-            errorLabel.setText("");
-
-            String username = usernameField.getText().trim();
-            String password = passwordField.getText();
-
-            // Validation
-            if (username.isEmpty() || password.isEmpty()) {
-                showError("Username and password are required");
-                passwordField.clear();
-                logger.warn("Login attempt with empty credentials");
-                return;
-            }
-
-            logger.info("Attempting to find user: {}", username);
-
-            // Try to find user by username
-            var userOptional = userRepository.findByUsername(username);
-
-            if (userOptional.isEmpty()) {
-                showError("Incorrect username or password");
-                passwordField.clear();
-                logger.warn("Login failed: user {} not found", username);
-                return;
-            }
-
-            User user = userOptional.get();
-            logger.info("User found: {}, checking password", username);
-
-            // Simple password verification (in production, use hashing)
-            if (!user.getPassword().equals(password)) {
-                showError("Incorrect username or password");
-                passwordField.clear();
-                logger.warn("Login failed: incorrect password for user {}", username);
-                return;
-            }
-
-            logger.info("Password verified for user: {}", username);
-
-            // Check if user is active
-            if (!user.isActive()) {
-                showError("User account is inactive");
-                passwordField.clear();
-                logger.warn("Login failed: user {} is inactive", username);
-                return;
-            }
-
-            // Login successful
-            logger.info("Login successful for user: {}, Role: {}", username, user.getRole());
             Session.getInstance().login(user);
-
-            // Navigate based on role
+            connectToNetwork(user, username, password);
             navigateByRole(user.getRole());
-
         } catch (Exception e) {
-            logger.error("Critical error during login", e);
-            e.printStackTrace();
             showError("Error: " + e.getMessage());
             passwordField.clear();
+        } finally {
+            loginButton.setDisable(false);
+        }
+    }
+
+    private void connectToNetwork(User user, String username, String password) {
+        NetworkManager network = NetworkManager.getInstance();
+        RMIManager rmi = RMIManager.getInstance();
+        try {
+            if (user.getRole() == User.UserRole.TEACHER || user.getRole() == User.UserRole.ADMIN) {
+                network.startServer();
+                rmi.startServer();
+                logger.info("TCP and RMI servers started for {}", user.getRole());
+            }
+            if (user.getRole() == User.UserRole.STUDENT) {
+                boolean tcpOk = network.connectClient();
+                if (tcpOk) {
+                    network.clientLogin(username, password);
+                    logger.info("Student connected to TCP server");
+                }
+                if (rmi.connectClient()) {
+                    rmi.clientLogin(username, password);
+                    logger.info("Student connected to RMI registry");
+                }
+                if (!tcpOk && !rmi.isClientConnected()) {
+                    logger.warn("Student running in offline mode (servers unavailable)");
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Network connection skipped: {}", e.getMessage());
         }
     }
 
@@ -157,7 +175,7 @@ public class LoginController {
                 break;
             case TEACHER:
                 logger.info("Navigating to Teacher Dashboard");
-                showDashboard("Teacher Dashboard");
+                navigateToTeacherDashboard();
                 break;
             case STUDENT:
                 logger.info("Navigating to Student Dashboard");
@@ -165,6 +183,22 @@ public class LoginController {
                 break;
             default:
                 logger.warn("Unknown role: {}", role);
+        }
+    }
+
+    private void navigateToTeacherDashboard() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/TeacherDashboard.fxml"));
+            Parent root = loader.load();
+            TeacherDashboardController controller = loader.getController();
+            controller.setUser(Session.getInstance().getCurrentUser());
+
+            Stage stage = (Stage) loginButton.getScene().getWindow();
+            stage.setScene(new Scene(root, 900, 650));
+            stage.setTitle("Teacher Dashboard - ExamSystem");
+        } catch (Exception e) {
+            logger.error("Error navigating to teacher dashboard", e);
+            showError("Unable to open teacher dashboard: " + e.getMessage());
         }
     }
 
