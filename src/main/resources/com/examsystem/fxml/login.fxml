@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.text.Font?>
+
+<!-- Login Screen FXML for ExamSystem -->
+<!-- Phase 3 - Authentication System -->
+
+<AnchorPane prefHeight="600" prefWidth="800" xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.examsystem.controller.LoginController">
+
+    <!-- Main container with gradient background -->
+    <VBox prefHeight="600" prefWidth="800" spacing="20" alignment="CENTER"
+        style="-fx-background-color: linear-gradient(to bottom, #2c3e50, #34495e);">
+
+        <!-- Title -->
+        <Label fx:id="titleLabel" text="ExamSystem" alignment="CENTER" textFill="WHITE"
+            style="-fx-font-size: 32; -fx-font-weight: bold;">
+            <font>
+                <Font name="Arial" size="32" />
+            </font>
+        </Label>
+
+        <!-- Subtitle -->
+        <Label text="Login to Your Account" alignment="CENTER" textFill="#ecf0f1"
+            style="-fx-font-size: 16;">
+            <font>
+                <Font name="Arial" size="16" />
+            </font>
+        </Label>
+
+        <!-- Login form container -->
+        <VBox spacing="15"
+            style="-fx-padding: 30; -fx-border-color: #34495e; -fx-border-width: 2; -fx-border-radius: 5; -fx-background-color: #2c3e50;"
+            maxWidth="350">
+
+            <!-- Username field -->
+            <VBox spacing="5">
+                <Label text="Username:" textFill="WHITE" style="-fx-font-size: 12;" />
+                <TextField fx:id="usernameField" promptText="Enter your username"
+                    style="-fx-font-size: 14; -fx-padding: 8;">
+                    <VBox.margin>
+                        <Insets left="0" right="0" />
+                    </VBox.margin>
+                </TextField>
+            </VBox>
+
+            <!-- Password field -->
+            <VBox spacing="5">
+                <Label text="Password:" textFill="WHITE" style="-fx-font-size: 12;" />
+                <PasswordField fx:id="passwordField" promptText="Enter your password"
+                    style="-fx-font-size: 14; -fx-padding: 8;">
+                    <VBox.margin>
+                        <Insets left="0" right="0" />
+                    </VBox.margin>
+                </PasswordField>
+            </VBox>
+
+            <!-- Error label -->
+            <Label fx:id="errorLabel" text="" textFill="RED"
+                style="-fx-font-size: 12; -fx-text-fill: #e74c3c;" wrapText="true">
+                <VBox.margin>
+                    <Insets top="5" />
+                </VBox.margin>
+            </Label>
+
+            <!-- Button container -->
+            <HBox spacing="10" style="-fx-alignment: center;" VBox.vgrow="ALWAYS">
+                <VBox.margin>
+                    <Insets top="15" />
+                </VBox.margin>
+
+                <!-- Login button -->
+                <Button fx:id="loginButton" text="Login"
+                    style="-fx-font-size: 14; -fx-padding: 10 30; -fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"
+                    prefWidth="100">
+                </Button>
+
+                <!-- Signup button -->
+                <Button fx:id="signupButton" text="Sign Up"
+                    style="-fx-font-size: 14; -fx-padding: 10 30; -fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;"
+                    prefWidth="100">
+                </Button>
+            </HBox>
+
+            <!-- Forgot password link -->
+            <Label text="Forgot password?" alignment="CENTER" textFill="#3498db"
+                style="-fx-font-size: 11; -fx-underline: true; -fx-cursor: hand;">
+                <VBox.margin>
+                    <Insets top="10" />
+                </VBox.margin>
+            </Label>
+        </VBox>
+
+        <!-- Footer -->
+        <Label text="ExamSystem v1.0.0 | Phase 3 - Authentication" alignment="CENTER"
+            textFill="#95a5a6" style="-fx-font-size: 10;">
+            <VBox.margin>
+                <Insets top="30" />
+            </VBox.margin>
+        </Label>
+
+    </VBox>
+</AnchorPane>
