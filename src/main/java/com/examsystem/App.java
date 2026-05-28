@@ -1,7 +1,9 @@
 package com.examsystem;
 
+import com.examsystem.db.DatabaseConnection;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
+import com.examsystem.sync.SyncManager;
 import com.examsystem.util.ThreadPoolManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -43,9 +45,11 @@ public class App extends Application {
     @Override
     public void stop() {
         logger.info("Shutting down ExamSystem...");
+        SyncManager.getInstance().shutdown();
         NetworkManager.getInstance().shutdown();
         RMIManager.getInstance().shutdown();
         ThreadPoolManager.getInstance().shutdown();
+        DatabaseConnection.closePool();
     }
 
     public static void main(String[] args) {

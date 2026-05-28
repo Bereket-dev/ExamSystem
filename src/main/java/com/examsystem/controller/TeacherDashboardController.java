@@ -5,6 +5,7 @@ import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
+import com.examsystem.sync.SyncManager;
 import com.examsystem.service.TeacherService;
 import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.ConfigManager;
@@ -300,8 +301,9 @@ public class TeacherDashboardController {
 
     private void handleLogout() {
         try {
+            SyncManager.getInstance().syncNow(true);
             NetworkManager.getInstance().stopServer();
-            RMIManager.getInstance().stopServer();
+            RMIManager.getInstance().disconnectClient();
             Session.getInstance().logout();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();

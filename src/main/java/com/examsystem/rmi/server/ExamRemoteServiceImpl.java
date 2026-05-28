@@ -8,8 +8,13 @@ import com.examsystem.rmi.remote.ExamRemoteService;
 import com.examsystem.rmi.remote.LoginResult;
 import com.examsystem.rmi.remote.MonitoringSummary;
 import com.examsystem.rmi.remote.RemoteAnswerPayload;
+import com.examsystem.db.DatabaseConnection;
 import com.examsystem.service.StudentService;
 import com.examsystem.service.TeacherService;
+import com.examsystem.sync.ClientSessionRegistry;
+import com.examsystem.sync.DatabaseSyncService;
+import com.examsystem.rmi.remote.SyncBundle;
+import com.examsystem.rmi.remote.SyncResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +33,7 @@ public class ExamRemoteServiceImpl extends UnicastRemoteObject implements ExamRe
     private final UserRepository userRepository = new UserRepositoryImpl();
     private final StudentService studentService = new StudentService();
     private final TeacherService teacherService = new TeacherService();
+    private final DatabaseSyncService databaseSyncService = new DatabaseSyncService();
     private final Object saveLock = new Object();
 
     public ExamRemoteServiceImpl() throws RemoteException {
@@ -93,5 +99,31 @@ public class ExamRemoteServiceImpl extends UnicastRemoteObject implements ExamRe
         int active = teacherService.getActiveMonitoring(teacherId).size();
         int reports = teacherService.getSubmittedReports(teacherId).size();
         return new MonitoringSummary(active, reports);
+    }
+
+    @Override
+    public SyncBundle pullSyncBundle() throws RemoteException {
+        registerClientHeartbeat();
+        try (var central = DatabaseConnection.getCentralConnection()) {
+            return databaseSyncService.exportAll(central);
+        } catch (Exception e) {
+            logger.error("RMI pullSyncBundle failed", e);
+            throw new RemoteException("Failed to export central data: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public SyncResult pushSyncBundle(SyncBundle bundle) throws RemoteException {
+        registerClientHeartbeat();
+        try (var central = DatabaseConnection.getCentralConnection()) {
+            return databaseSyncService.importAll(central, bundle, false);
+        } catch (Exception e) {
+            logger.error("RMI pushSyncBundle failed", e);
+            throw new RemoteException("Failed to import to central: " + e.getMessage(), e);
+        }
+    }
+
+    private void registerClientHeartbeat() {
+        ClientSessionRegistry.getInstance().heartbeat("rmi-client-" + System.currentTimeMillis());
     }
 }

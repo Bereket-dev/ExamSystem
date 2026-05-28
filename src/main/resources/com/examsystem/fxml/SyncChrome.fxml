@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.examsystem.controller.SyncChromeController" spacing="0">
+    <HBox fx:id="offlineBanner" styleClass="offline-banner" alignment="CENTER_LEFT" spacing="8">
+        <padding><Insets top="8" right="16" bottom="8" left="16" /></padding>
+        <Label fx:id="offlineBannerLabel" wrapText="true" />
+    </HBox>
+    <HBox styleClass="sync-status-bar" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="6" right="16" bottom="6" left="16" /></padding>
+        <Label fx:id="connectionIndicator" styleClass="sync-connection-label" />
+        <Label fx:id="connectionStatusLabel" styleClass="sync-connection-label" visible="false" managed="false" />
+        <Separator orientation="VERTICAL" />
+        <Label fx:id="topologyLabel" styleClass="sync-topology" wrapText="true" HBox.hgrow="ALWAYS" />
+        <ProgressIndicator fx:id="syncSpinner" prefWidth="22" prefHeight="22" />
+        <Button fx:id="syncNowButton" text="Sync Now" styleClass="btn-secondary" />
+        <Button fx:id="syncHistoryButton" text="History" styleClass="btn-neutral" />
+    </HBox>
+    <HBox fx:id="syncPanelCard" styleClass="sync-panel" alignment="CENTER_LEFT" spacing="20">
+        <padding><Insets top="10" right="16" bottom="10" left="16" /></padding>
+        <Label fx:id="lastSyncLabel" styleClass="sync-panel-item" />
+        <Label fx:id="pendingLabel" styleClass="sync-panel-item" />
+        <Label fx:id="databaseSourceLabel" styleClass="sync-panel-item" />
+        <Label fx:id="syncModeLabel" styleClass="sync-panel-item" />
+        <Label fx:id="operationLabel" styleClass="sync-panel-item" />
+    </HBox>
+</VBox>

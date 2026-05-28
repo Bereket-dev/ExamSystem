@@ -6,6 +6,7 @@ import com.examsystem.model.Student;
 import com.examsystem.model.User;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
+import com.examsystem.sync.SyncManager;
 import com.examsystem.service.StudentService;
 import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.Session;
@@ -181,6 +182,7 @@ public class StudentDashboardController {
 
     private void handleLogout() {
         try {
+            SyncManager.getInstance().syncNow(true);
             NetworkManager.getInstance().disconnectClient();
             RMIManager.getInstance().disconnectClient();
             Session.getInstance().logout();

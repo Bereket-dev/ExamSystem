@@ -134,6 +134,36 @@
                 </VBox>
             </Tab>
 
+            <!-- Distributed System Tab -->
+            <Tab text="Distributed System">
+                <VBox spacing="16" style="-fx-padding: 20;">
+                    <Label text="Real-time distributed architecture monitoring"
+                        style="-fx-font-size: 16; -fx-font-weight: bold;" />
+                    <HBox spacing="24">
+                        <VBox spacing="8" styleClass="panel" style="-fx-min-width: 180;">
+                            <Label text="Connected Clients" style="-fx-font-weight: bold;" />
+                            <Label fx:id="connectedClientsLabel" text="0" style="-fx-font-size: 28;" />
+                        </VBox>
+                        <VBox spacing="8" styleClass="panel" style="-fx-min-width: 180;">
+                            <Label text="Offline Clients" style="-fx-font-weight: bold;" />
+                            <Label fx:id="offlineClientsLabel" text="0" style="-fx-font-size: 28;" />
+                        </VBox>
+                        <VBox spacing="8" styleClass="panel" style="-fx-min-width: 180;">
+                            <Label text="Active Published Exams" style="-fx-font-weight: bold;" />
+                            <Label fx:id="activeExamsLabel" text="0" style="-fx-font-size: 28;" />
+                        </VBox>
+                        <VBox spacing="8" styleClass="panel" style="-fx-min-width: 180;">
+                            <Label text="Pending Sync Queue" style="-fx-font-weight: bold;" />
+                            <Label fx:id="pendingSyncQueueLabel" text="0" style="-fx-font-size: 28;" />
+                        </VBox>
+                    </HBox>
+                    <Label fx:id="lastSyncActivityLabel" text="Last sync activity: —" />
+                    <Label fx:id="distributedTopologyLabel" text="" wrapText="true" />
+                    <Button text="Refresh Metrics" fx:id="refreshDistributedMetricsButton"
+                        style="-fx-padding: 8 20;" />
+                </VBox>
+            </Tab>
+
             <!-- Teacher-Course Assignment Tab -->
             <Tab text="Assign Teachers to Courses" fx:id="assignmentTab">
                 <VBox spacing="15" style="-fx-padding: 15;">

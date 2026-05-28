@@ -5,6 +5,8 @@ import com.examsystem.rmi.client.RMIClient;
 import com.examsystem.rmi.remote.LoginResult;
 import com.examsystem.rmi.remote.MonitoringSummary;
 import com.examsystem.rmi.remote.RemoteAnswerPayload;
+import com.examsystem.rmi.remote.SyncBundle;
+import com.examsystem.rmi.remote.SyncResult;
 import com.examsystem.rmi.server.RMIServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,13 @@ public class RMIManager {
         return rmiClient != null && rmiClient.isConnected();
     }
 
+    public String ping() throws RemoteException {
+        if (!connectClient()) {
+            throw new RemoteException("RMI server unavailable");
+        }
+        return rmiClient.ping();
+    }
+
     public LoginResult clientLogin(String username, String password) {
         try {
             if (!connectClient()) {
@@ -122,6 +131,20 @@ public class RMIManager {
             logger.warn("RMI monitoring fetch failed: {}", e.getMessage());
             return new MonitoringSummary(0, 0);
         }
+    }
+
+    public SyncBundle pullSyncBundle() throws RemoteException {
+        if (!connectClient()) {
+            throw new RemoteException("RMI server unavailable");
+        }
+        return rmiClient.pullSyncBundle();
+    }
+
+    public SyncResult pushSyncBundle(SyncBundle bundle) throws RemoteException {
+        if (!connectClient()) {
+            return SyncResult.fail("RMI server unavailable");
+        }
+        return rmiClient.pushSyncBundle(bundle);
     }
 
     public synchronized void shutdown() {

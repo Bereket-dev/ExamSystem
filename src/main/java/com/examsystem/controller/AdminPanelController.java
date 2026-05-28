@@ -2,6 +2,7 @@ package com.examsystem.controller;
 
 import com.examsystem.model.*;
 import com.examsystem.service.AdminService;
+import com.examsystem.sync.SyncManager;
 import com.examsystem.util.Session;
 import com.examsystem.util.UiManager;
 import javafx.application.Platform;
@@ -98,15 +99,50 @@ public class AdminPanelController {
     private Label statusLabel;
 
     @FXML
+    private Label connectedClientsLabel;
+    @FXML
+    private Label offlineClientsLabel;
+    @FXML
+    private Label activeExamsLabel;
+    @FXML
+    private Label pendingSyncQueueLabel;
+    @FXML
+    private Label lastSyncActivityLabel;
+    @FXML
+    private Label distributedTopologyLabel;
+    @FXML
+    private Button refreshDistributedMetricsButton;
+
+    @FXML
     public void initialize() {
         try {
             adminService = new AdminService();
             setupUI();
             setupTableColumns();
             loadAllData();
+            bindDistributedMetrics();
         } catch (Exception e) {
             logger.error("Error initializing Admin Panel", e);
             showError("Initialization Error", "Failed to initialize admin panel: " + e.getMessage());
+        }
+    }
+
+    private void bindDistributedMetrics() {
+        SyncManager sync = SyncManager.getInstance();
+        if (connectedClientsLabel != null) {
+            connectedClientsLabel.textProperty().bind(
+                    sync.connectedClientsProperty().asString());
+            offlineClientsLabel.textProperty().bind(sync.offlineClientsProperty().asString());
+            activeExamsLabel.textProperty().bind(sync.activeExamsCountProperty().asString());
+            pendingSyncQueueLabel.textProperty().bind(sync.pendingCountProperty().asString());
+            lastSyncActivityLabel.textProperty().bind(
+                    javafx.beans.binding.Bindings.concat("Last sync activity: ",
+                            sync.lastSyncActivityProperty()));
+            distributedTopologyLabel.textProperty().bind(sync.topologyTextProperty());
+            if (refreshDistributedMetricsButton != null) {
+                refreshDistributedMetricsButton.setOnAction(e -> sync.refreshAdminMetrics());
+            }
+            sync.refreshAdminMetrics();
         }
     }
 
@@ -1037,6 +1073,7 @@ public class AdminPanelController {
     private void logout() {
         if (confirmDelete("Logout", "Are you sure you want to logout?")) {
             try {
+                SyncManager.getInstance().syncNow(true);
                 Session.getInstance().logout();
                 Stage stage = (Stage) logoutButton.getScene().getWindow();
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));

@@ -13,13 +13,31 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Database Connection Manager using HikariCP connection pooling.
- * Manages MySQL database connections for the ExamSystem.
+ * Central MySQL database (admin primary store) and routing for client backup access.
  */
 public class DatabaseConnection {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseConnection.class);
-    private static volatile HikariDataSource dataSource;
+    private static volatile HikariDataSource centralDataSource;
+    private static volatile DeviceRole deviceRole = DeviceRole.fromConfig(
+            ConfigManager.getProperty("device.role", "admin"));
     private static final Object LOCK = new Object();
+
+    public static void setDeviceRole(DeviceRole role) {
+        deviceRole = role;
+        logger.info("Device role set to {}", role);
+    }
+
+    public static DeviceRole getDeviceRole() {
+        return deviceRole;
+    }
+
+    public static boolean isAdminDevice() {
+        return deviceRole == DeviceRole.ADMIN;
+    }
+
+    public static boolean isClientDevice() {
+        return deviceRole == DeviceRole.CLIENT;
+    }
 
     private static String getDbHost() {
         return ConfigManager.getProperty("db.host", "localhost");
@@ -41,18 +59,18 @@ public class DatabaseConnection {
         return ConfigManager.getProperty("db.password", "password");
     }
 
-    private static HikariDataSource getDataSource() throws SQLException {
-        if (dataSource == null) {
+    private static HikariDataSource getCentralDataSource() throws SQLException {
+        if (centralDataSource == null) {
             synchronized (LOCK) {
-                if (dataSource == null) {
-                    initializeDataSource();
+                if (centralDataSource == null) {
+                    initializeCentralDataSource();
                 }
             }
         }
-        return dataSource;
+        return centralDataSource;
     }
 
-    private static void initializeDataSource() throws SQLException {
+    private static void initializeCentralDataSource() throws SQLException {
         try {
             HikariConfig config = new HikariConfig();
             String jdbcUrl = String.format(
@@ -67,13 +85,13 @@ public class DatabaseConnection {
             config.setIdleTimeout(300000);
             config.setMaxLifetime(1200000);
             config.setAutoCommit(true);
+            config.setPoolName("ExamCentralPool");
 
-            dataSource = new HikariDataSource(config);
-            logger.info("Database connection pool initialized for user '{}' on '{}'",
-                    getDbUser(), getDbName());
+            centralDataSource = new HikariDataSource(config);
+            logger.info("Central database pool initialized for '{}' on '{}'", getDbUser(), getDbName());
             runSchemaMigrationIfNeeded();
         } catch (Exception e) {
-            logger.error("Failed to initialize database connection pool", e);
+            logger.error("Failed to initialize central database connection pool", e);
             throw new SQLException(
                     "Cannot connect to MySQL. Run: sudo mysql < src/main/resources/sql/setup_user.sql",
                     e);
@@ -81,7 +99,7 @@ public class DatabaseConnection {
     }
 
     private static void runSchemaMigrationIfNeeded() {
-        try (Connection conn = dataSource.getConnection()) {
+        try (Connection conn = centralDataSource.getConnection()) {
             if (!doesTableExist(conn, "exams")) {
                 logger.warn("ExamSystem database table 'exams' does not exist. Ensure schema.sql has been applied.");
                 return;
@@ -96,8 +114,6 @@ public class DatabaseConnection {
                     stmt.executeUpdate("CREATE INDEX idx_exam_course ON exams(course_id)");
                 }
                 logger.info("Migration completed: added course_id column to exams table");
-            } else {
-                logger.info("Database schema verified: exams.course_id is present");
             }
         } catch (SQLException e) {
             logger.error("Schema migration check failed", e);
@@ -127,25 +143,65 @@ public class DatabaseConnection {
         }
     }
 
+    /**
+     * Primary connection for application repositories.
+     * Admin devices use central MySQL; client devices use local H2 backup.
+     */
     public static Connection getConnection() throws SQLException {
-        return getDataSource().getConnection();
+        if (isClientDevice()) {
+            return BackupDatabaseConnection.getConnection();
+        }
+        return getCentralConnection();
+    }
+
+    /** Central authoritative MySQL database (admin host). */
+    public static Connection getCentralConnection() throws SQLException {
+        return getCentralDataSource().getConnection();
+    }
+
+    /** Authentication and user master data always use the central database. */
+    public static Connection getAuthConnection() throws SQLException {
+        return getCentralConnection();
+    }
+
+    /** Local H2 backup database. */
+    public static Connection getBackupConnection() throws SQLException {
+        return BackupDatabaseConnection.getConnection();
     }
 
     public static boolean testConnection() {
-        try (Connection conn = getConnection()) {
-            logger.info("Database connection test successful");
-            return true;
+        try {
+            if (isClientDevice()) {
+                return BackupDatabaseConnection.testConnection();
+            }
+            try (Connection conn = getCentralConnection()) {
+                return conn.isValid(2);
+            }
         } catch (SQLException e) {
             logger.error("Database connection test failed", e);
             return false;
         }
     }
 
+    public static boolean testCentralConnection() {
+        try (Connection conn = getCentralConnection()) {
+            return conn.isValid(2);
+        } catch (SQLException e) {
+            logger.error("Central database connection test failed", e);
+            return false;
+        }
+    }
+
     public static void closePool() {
-        if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
-            dataSource = null;
-            logger.info("Database connection pool closed");
+        closeCentralPool();
+        BackupDatabaseConnection.closePool();
+    }
+
+    public static void closeCentralPool() {
+        if (centralDataSource != null && !centralDataSource.isClosed()) {
+            centralDataSource.close();
+            centralDataSource = null;
+            logger.info("Central database connection pool closed");
         }
     }
 }

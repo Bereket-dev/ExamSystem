@@ -18,4 +18,10 @@ public interface ExamRemoteService extends Remote {
     boolean submitExam(int assignmentId, int totalMarks) throws RemoteException;
 
     MonitoringSummary getMonitoringSummary(int teacherId) throws RemoteException;
+
+    /** Pull full central database snapshot for client backup sync. */
+    SyncBundle pullSyncBundle() throws RemoteException;
+
+    /** Apply client backup changes to the central database. */
+    SyncResult pushSyncBundle(SyncBundle bundle) throws RemoteException;
 }

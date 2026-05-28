@@ -7,6 +7,8 @@ import com.examsystem.model.StudentAnswer;
 import com.examsystem.model.User;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
+import com.examsystem.sync.PendingChangeType;
+import com.examsystem.sync.SyncManager;
 import com.examsystem.service.StudentService;
 import com.examsystem.util.AutoSaveThread;
 import com.examsystem.util.ExamTimerThread;
@@ -208,8 +210,15 @@ public class ExamScreenController {
         StudentAnswer answer = buildAnswerForQuestion(currentQuestion);
         studentService.saveStudentAnswer(answer);
         savedAnswers.put(currentQuestion.getQuestionId(), answer);
-        NetworkManager.getInstance().syncSaveAnswer(answer);
-        RMIManager.getInstance().syncSaveAnswer(answer);
+        SyncManager.getInstance().recordPendingChange(PendingChangeType.ANSWER_SAVE);
+        boolean synced = SyncManager.getInstance().tryRemoteSync(() -> {
+            NetworkManager.getInstance().syncSaveAnswer(answer);
+            RMIManager.getInstance().syncSaveAnswer(answer);
+        });
+        if (!synced) {
+            NetworkManager.getInstance().syncSaveAnswer(answer);
+            RMIManager.getInstance().syncSaveAnswer(answer);
+        }
     }
 
     private StudentAnswer buildAnswerForQuestion(Question currentQuestion) {
@@ -270,8 +279,16 @@ public class ExamScreenController {
         attempt.setSubmissionStatus("submitted");
         studentService.updateAttempt(attempt);
         studentService.markAssignmentAttempted(assignmentId);
-        NetworkManager.getInstance().syncSubmitExam(assignmentId, totalMarks);
-        RMIManager.getInstance().syncSubmitExam(assignmentId, totalMarks);
+        SyncManager.getInstance().recordPendingChange(PendingChangeType.EXAM_SUBMIT);
+        boolean synced = SyncManager.getInstance().tryRemoteSync(() -> {
+            NetworkManager.getInstance().syncSubmitExam(assignmentId, totalMarks);
+            RMIManager.getInstance().syncSubmitExam(assignmentId, totalMarks);
+        });
+        if (!synced) {
+            NetworkManager.getInstance().syncSubmitExam(assignmentId, totalMarks);
+            RMIManager.getInstance().syncSubmitExam(assignmentId, totalMarks);
+        }
+        SyncManager.getInstance().onExamSubmitted(synced && RMIManager.getInstance().isClientConnected());
 
         openResultScreen(totalMarks);
     }

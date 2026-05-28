@@ -44,6 +44,13 @@
             <version>8.2.0</version>
         </dependency>
 
+        <!-- H2 embedded database for local backup / offline sync -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+        </dependency>
+
         <!-- HikariCP - Connection Pool -->
         <dependency>
             <groupId>com.zaxxer</groupId>

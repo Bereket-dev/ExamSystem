@@ -61,7 +61,8 @@ public final class UiManager {
     }
 
     public static void navigateToApp(Stage stage, Parent root, String title) {
-        navigate(stage, root, APP_WIDTH, APP_HEIGHT, title);
+        Parent wrapped = SyncUiHelper.wrapForSync(root, stage);
+        navigate(stage, wrapped, APP_WIDTH, APP_HEIGHT, title);
     }
 
     public static void navigateToLogin(Stage stage, Parent root) {

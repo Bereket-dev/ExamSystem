@@ -12,6 +12,8 @@ import com.examsystem.repository.UserRepository;
 import com.examsystem.repository.UserRepositoryImpl;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
+import com.examsystem.sync.SyncManager;
+import com.examsystem.sync.ui.SyncProgressDialog;
 import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.FormValidator;
 import com.examsystem.util.Session;
@@ -122,6 +124,7 @@ public class LoginController {
         try {
             Session.getInstance().login(user);
             connectToNetwork(user, username, password);
+            SyncManager.getInstance().initializeForUser(user);
             navigateByRole(user.getRole());
         } catch (Exception e) {
             showError("Error: " + e.getMessage());
@@ -135,27 +138,43 @@ public class LoginController {
         NetworkManager network = NetworkManager.getInstance();
         RMIManager rmi = RMIManager.getInstance();
         try {
-            if (user.getRole() == User.UserRole.TEACHER || user.getRole() == User.UserRole.ADMIN) {
+            if (user.getRole() == User.UserRole.ADMIN) {
                 network.startServer();
                 rmi.startServer();
-                logger.info("TCP and RMI servers started for {}", user.getRole());
-            }
-            if (user.getRole() == User.UserRole.STUDENT) {
+                logger.info("Admin: TCP and RMI servers started (central database host)");
+            } else if (user.getRole() == User.UserRole.TEACHER) {
+                network.startServer();
+                logger.info("Teacher: TCP server started for classroom clients");
+                connectRmiClient(rmi, username, password, "Teacher");
+            } else if (user.getRole() == User.UserRole.STUDENT) {
                 boolean tcpOk = network.connectClient();
                 if (tcpOk) {
                     network.clientLogin(username, password);
                     logger.info("Student connected to TCP server");
                 }
-                if (rmi.connectClient()) {
-                    rmi.clientLogin(username, password);
-                    logger.info("Student connected to RMI registry");
-                }
-                if (!tcpOk && !rmi.isClientConnected()) {
-                    logger.warn("Student running in offline mode (servers unavailable)");
+                boolean rmiOk = connectRmiClient(rmi, username, password, "Student");
+                if (!tcpOk && !rmiOk) {
+                    logger.warn("Student running in offline mode using local backup only");
                 }
             }
         } catch (Exception e) {
-            logger.warn("Network connection skipped: {}", e.getMessage());
+            logger.warn("Network connection skipped: {}", SyncManager.friendlyMessage(e));
+        }
+    }
+
+    private boolean connectRmiClient(RMIManager rmi, String username, String password, String roleLabel) {
+        if (!rmi.connectClient()) {
+            logger.warn("{}: RMI admin server unavailable — using local backup", roleLabel);
+            return false;
+        }
+        rmi.clientLogin(username, password);
+        logger.info("{} connected to admin RMI registry", roleLabel);
+        return true;
+    }
+
+    private void showInitialSyncProgress(Stage stage) {
+        if (stage != null) {
+            SyncProgressDialog.show(stage, null);
         }
     }
 
@@ -202,6 +221,7 @@ public class LoginController {
 
             Stage stage = (Stage) loginButton.getScene().getWindow();
             UiManager.navigateToApp(stage, root, "Teacher Dashboard - ExamSystem");
+            showInitialSyncProgress(stage);
         } catch (Exception e) {
             logger.error("Error navigating to teacher dashboard", e);
             showError("Unable to open teacher dashboard: " + e.getMessage());
@@ -217,6 +237,7 @@ public class LoginController {
 
             Stage stage = (Stage) loginButton.getScene().getWindow();
             UiManager.navigateToApp(stage, root, "Student Dashboard - ExamSystem");
+            showInitialSyncProgress(stage);
         } catch (Exception e) {
             logger.error("Error navigating to student dashboard", e);
             showError("Unable to open student dashboard: " + e.getMessage());
@@ -232,6 +253,7 @@ public class LoginController {
 
             Stage stage = (Stage) loginButton.getScene().getWindow();
             UiManager.navigateToApp(stage, root, "Admin Panel - ExamSystem");
+            showInitialSyncProgress(stage);
         } catch (Exception e) {
             logger.error("Error navigating to admin panel", e);
             showError("Unable to open admin panel: " + e.getMessage());

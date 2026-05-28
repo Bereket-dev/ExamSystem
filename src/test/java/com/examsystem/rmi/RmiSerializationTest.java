@@ -3,6 +3,8 @@ package com.examsystem.rmi;
 import com.examsystem.rmi.remote.LoginResult;
 import com.examsystem.rmi.remote.MonitoringSummary;
 import com.examsystem.rmi.remote.RemoteAnswerPayload;
+import com.examsystem.rmi.remote.SyncBundle;
+import com.examsystem.rmi.remote.SyncResult;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -46,6 +48,27 @@ public class RmiSerializationTest {
         assertEquals(Integer.valueOf(7), copy.getSelectedOptionId());
         assertTrue(copy.getCorrect());
         assertEquals(2, copy.getMarksObtained());
+    }
+
+    @Test
+    public void testSyncBundleSerialization() throws Exception {
+        SyncBundle original = new SyncBundle();
+        original.putTable("users", java.util.List.of(java.util.Map.of("user_id", "1", "username", "admin1")));
+
+        SyncBundle copy = serializeAndDeserialize(original);
+
+        assertEquals(1, copy.getTable("users").size());
+        assertEquals("admin1", copy.getTable("users").get(0).get("username"));
+    }
+
+    @Test
+    public void testSyncResultSerialization() throws Exception {
+        SyncResult original = SyncResult.ok("Synced", 3, 42);
+        SyncResult copy = serializeAndDeserialize(original);
+
+        assertTrue(copy.isSuccess());
+        assertEquals(3, copy.getTablesSynced());
+        assertEquals(42, copy.getRowsSynced());
     }
 
     @Test

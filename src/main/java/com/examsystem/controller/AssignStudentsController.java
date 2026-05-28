@@ -7,6 +7,8 @@ import com.examsystem.model.Student;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.service.TeacherService;
+import com.examsystem.sync.PendingChangeType;
+import com.examsystem.sync.SyncManager;
 import com.examsystem.util.Session;
 import com.examsystem.util.UiManager;
 import javafx.collections.FXCollections;
@@ -206,6 +208,9 @@ public class AssignStudentsController implements TeacherScreen {
 
             refreshStudents();
 
+            if (result.hasChanges()) {
+                SyncManager.getInstance().recordPendingChange(PendingChangeType.ASSIGNMENT);
+            }
             String message = buildSyncMessage(exam.getExamName(), result, selectedStudentIds.isEmpty());
             if (result.hasChanges() || selectedStudentIds.isEmpty()) {
                 showAssignmentSuccess(message);

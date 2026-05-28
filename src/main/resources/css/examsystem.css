@@ -239,3 +239,66 @@
     -fx-background-color: #bdc3c7;
     -fx-padding: 0 2 0 2;
 }
+
+/* ---------- Distributed sync UX ---------- */
+.sync-status-bar {
+    -fx-background-color: #34495e;
+}
+
+.sync-connection-label {
+    -fx-text-fill: #ecf0f1;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.sync-topology {
+    -fx-text-fill: #bdc3c7;
+    -fx-font-size: 12px;
+}
+
+.sync-panel {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #dfe6e9;
+    -fx-border-width: 0 0 1 0;
+}
+
+.sync-panel-item {
+    -fx-text-fill: #2c3e50;
+    -fx-font-size: 12px;
+}
+
+.offline-banner {
+    -fx-background-color: #f39c12;
+}
+
+.offline-banner .label {
+    -fx-text-fill: #2c3e50;
+    -fx-font-weight: bold;
+}
+
+.sync-toast {
+    -fx-padding: 12 16;
+    -fx-background-radius: 8;
+    -fx-font-size: 13px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 8, 0, 0, 2);
+}
+
+.toast-success {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+}
+
+.toast-info {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.toast-warning {
+    -fx-background-color: #f39c12;
+    -fx-text-fill: #2c3e50;
+}
+
+.toast-error {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+}

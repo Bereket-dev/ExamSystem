@@ -38,7 +38,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public void save(User user) {
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 PreparedStatement stmt = conn.prepareStatement(INSERT_USER, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setString(1, user.getUsername());
@@ -65,7 +65,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> findById(int userId) {
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 PreparedStatement stmt = conn.prepareStatement(SELECT_BY_ID)) {
 
             stmt.setInt(1, userId);
@@ -82,7 +82,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> findByUsername(String username) {
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 PreparedStatement stmt = conn.prepareStatement(SELECT_BY_USERNAME)) {
 
             stmt.setString(1, username);
@@ -99,7 +99,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> findByEmail(String email) {
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 PreparedStatement stmt = conn.prepareStatement(SELECT_BY_EMAIL)) {
 
             stmt.setString(1, email);
@@ -117,7 +117,7 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public List<User> findAll() {
         List<User> users = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(SELECT_ALL)) {
 
@@ -133,7 +133,7 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public List<User> findByRole(String role) {
         List<User> users = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 PreparedStatement stmt = conn.prepareStatement(SELECT_BY_ROLE)) {
 
             stmt.setString(1, role.toLowerCase());
@@ -150,7 +150,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public void update(User user) {
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 PreparedStatement stmt = conn.prepareStatement(UPDATE_USER)) {
 
             stmt.setString(1, user.getPassword());
@@ -170,7 +170,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public void delete(int userId) {
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 PreparedStatement stmt = conn.prepareStatement(DELETE_USER)) {
 
             stmt.setInt(1, userId);
@@ -184,7 +184,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public boolean existsByUsername(String username) {
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 PreparedStatement stmt = conn.prepareStatement(EXISTS_USERNAME)) {
 
             stmt.setString(1, username);
@@ -201,7 +201,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public long count() {
-        try (Connection conn = DatabaseConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getAuthConnection();
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(COUNT_ALL)) {
 

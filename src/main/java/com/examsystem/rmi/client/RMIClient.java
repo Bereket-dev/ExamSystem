@@ -4,6 +4,8 @@ import com.examsystem.rmi.remote.ExamRemoteService;
 import com.examsystem.rmi.remote.LoginResult;
 import com.examsystem.rmi.remote.MonitoringSummary;
 import com.examsystem.rmi.remote.RemoteAnswerPayload;
+import com.examsystem.rmi.remote.SyncBundle;
+import com.examsystem.rmi.remote.SyncResult;
 import com.examsystem.util.ConfigManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +92,16 @@ public class RMIClient {
     public MonitoringSummary getMonitoringSummary(int teacherId) throws RemoteException {
         ensureConnected();
         return remoteService.getMonitoringSummary(teacherId);
+    }
+
+    public SyncBundle pullSyncBundle() throws RemoteException {
+        ensureConnected();
+        return remoteService.pullSyncBundle();
+    }
+
+    public SyncResult pushSyncBundle(SyncBundle bundle) throws RemoteException {
+        ensureConnected();
+        return remoteService.pushSyncBundle(bundle);
     }
 
     private void ensureConnected() throws RemoteException {

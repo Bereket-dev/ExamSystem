@@ -6,6 +6,8 @@ import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.service.TeacherService;
 import com.examsystem.util.FormValidator;
+import com.examsystem.sync.PendingChangeType;
+import com.examsystem.sync.SyncManager;
 import com.examsystem.util.Session;
 import com.examsystem.util.UiManager;
 import javafx.collections.FXCollections;
@@ -222,6 +224,7 @@ public class CreateExamController implements TeacherScreen {
                 statusLabel.getStyleClass().add("status-success");
                 statusLabel.setText("Exam created successfully (ID: " + exam.getExamId() + ").");
             }
+            SyncManager.getInstance().recordPendingChange(PendingChangeType.EXAM_EDIT);
         } catch (Exception e) {
             statusLabel.getStyleClass().removeAll("status-success");
             statusLabel.getStyleClass().add("status-error");
