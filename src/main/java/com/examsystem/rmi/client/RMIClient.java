@@ -22,8 +22,8 @@ import java.rmi.registry.Registry;
 public class RMIClient {
     private static final Logger logger = LoggerFactory.getLogger(RMIClient.class);
 
-    private final String host;
-    private final int port;
+    private String host;
+    private int port;
     private final String serviceName;
     private final int maxRetries;
     private final long retryDelayMs;
@@ -32,11 +32,31 @@ public class RMIClient {
     private boolean connected;
 
     public RMIClient() {
-        this.host = ConfigManager.getProperty("rmi.registry.host", "localhost");
-        this.port = ConfigManager.getIntProperty("rmi.registry.port", 1099);
+        this(
+                ConfigManager.getProperty("rmi.registry.host", "localhost"),
+                ConfigManager.getIntProperty("rmi.registry.port", 1099));
+    }
+
+    public RMIClient(String host, int port) {
+        this.host = host;
+        this.port = port;
         this.serviceName = ConfigManager.getProperty("rmi.service.name", "ExamRemoteService");
         this.maxRetries = ConfigManager.getIntProperty("rmi.connect.retry.max", 3);
         this.retryDelayMs = ConfigManager.getIntProperty("rmi.connect.retry.delay.ms", 2000);
+    }
+
+    public void configure(String newHost, int newPort) {
+        disconnect();
+        this.host = newHost;
+        this.port = newPort;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
     }
 
     public boolean connect() {

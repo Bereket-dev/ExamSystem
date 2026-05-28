@@ -64,7 +64,7 @@ public class SyncChromeController {
     @FXML
     public void initialize() {
         offlineBannerLabel.setText(
-                "You are currently working offline. Changes will sync automatically when connection returns.");
+                "Offline Mode Activated — using local H2 backup. Changes will sync when you reconnect online.");
 
         connectionStatusLabel.textProperty().bind(
                 Bindings.createStringBinding(() -> {

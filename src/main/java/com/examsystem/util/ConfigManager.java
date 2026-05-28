@@ -67,4 +67,15 @@ public class ConfigManager {
         String value = properties.getProperty(key);
         return value != null ? Boolean.parseBoolean(value) : defaultValue;
     }
+
+    /**
+     * Updates in-memory configuration (e.g. after connection wizard saves settings).
+     */
+    public static void setRuntimeProperty(String key, String value) {
+        if (value == null) {
+            properties.remove(key);
+        } else {
+            properties.setProperty(key, value);
+        }
+    }
 }

@@ -539,6 +539,10 @@ public class SyncManager {
     }
 
     private boolean probeOnline() {
+        if (ConfigManager.getBooleanProperty("connection.offline.mode", false)
+                || DatabaseConnection.isForceOfflineData()) {
+            return false;
+        }
         if (DatabaseConnection.isAdminDevice()) {
             return RMIManager.getInstance().isServerRunning();
         }

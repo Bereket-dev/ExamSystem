@@ -20,7 +20,17 @@ public class DatabaseConnection {
     private static volatile HikariDataSource centralDataSource;
     private static volatile DeviceRole deviceRole = DeviceRole.fromConfig(
             ConfigManager.getProperty("device.role", "admin"));
+    private static volatile boolean forceOfflineData;
     private static final Object LOCK = new Object();
+
+    public static void setForceOfflineData(boolean offline) {
+        forceOfflineData = offline;
+        logger.info("Force offline data mode: {}", offline);
+    }
+
+    public static boolean isForceOfflineData() {
+        return forceOfflineData;
+    }
 
     public static void setDeviceRole(DeviceRole role) {
         deviceRole = role;
@@ -148,7 +158,7 @@ public class DatabaseConnection {
      * Admin devices use central MySQL; client devices use local H2 backup.
      */
     public static Connection getConnection() throws SQLException {
-        if (isClientDevice()) {
+        if (isClientDevice() || forceOfflineData) {
             return BackupDatabaseConnection.getConnection();
         }
         return getCentralConnection();

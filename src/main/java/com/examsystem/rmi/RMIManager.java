@@ -63,6 +63,23 @@ public class RMIManager {
         return rmiClient.connect();
     }
 
+    public synchronized boolean connectClient(String host, int port) {
+        if (rmiClient == null) {
+            rmiClient = new RMIClient(host, port);
+        } else {
+            rmiClient.configure(host, port);
+        }
+        return rmiClient.connect();
+    }
+
+    /**
+     * Tests reachability of an admin RMI registry without affecting the active client session.
+     */
+    public boolean testConnection(String host, int port) {
+        RMIClient probe = new RMIClient(host, port);
+        return probe.connect();
+    }
+
     public synchronized void disconnectClient() {
         if (rmiClient != null) {
             rmiClient.disconnect();

@@ -1,6 +1,7 @@
 package com.examsystem;
 
 import com.examsystem.db.DatabaseConnection;
+import com.examsystem.connection.ConnectionSettingsStore;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
 import com.examsystem.sync.SyncManager;
@@ -24,6 +25,7 @@ public class App extends Application {
     public void start(Stage primaryStage) {
         try {
             logger.info("Starting ExamSystem Application...");
+            ConnectionSettingsStore.load();
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/login.fxml"));
             Parent root = loader.load();

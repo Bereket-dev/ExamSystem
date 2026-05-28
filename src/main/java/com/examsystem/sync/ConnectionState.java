@@ -4,9 +4,9 @@ package com.examsystem.sync;
  * Real-time connectivity state for distributed sync UX.
  */
 public enum ConnectionState {
-    ONLINE("RMI Connected (Online)", "sync-dot-online"),
+    ONLINE("Online (RMI Connected)", "sync-dot-online"),
     SYNCING("Syncing...", "sync-dot-syncing"),
-    OFFLINE("Offline Mode", "sync-dot-offline"),
+    OFFLINE("Offline (H2 Mode)", "sync-dot-offline"),
     RECONNECTING("Reconnecting...", "sync-dot-reconnecting");
 
     private final String displayText;

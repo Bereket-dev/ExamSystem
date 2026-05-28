@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane prefHeight="600" prefWidth="800" minHeight="520" minWidth="640"
+    styleClass="connection-setup-root"
+    xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.examsystem.controller.ConnectionSetupController">
+    <top>
+        <VBox styleClass="connection-setup-header" spacing="6">
+            <padding>
+                <Insets top="24" right="32" bottom="16" left="32" />
+            </padding>
+            <Label text="Server Connection Setup" styleClass="connection-setup-title" />
+            <Label fx:id="welcomeLabel" text="Welcome" styleClass="connection-setup-subtitle" wrapText="true" />
+            <Label text="Configure how this device connects to the central admin server before continuing."
+                styleClass="connection-setup-hint" wrapText="true" />
+        </VBox>
+    </top>
+    <center>
+        <VBox spacing="18" styleClass="connection-setup-card" maxWidth="520">
+            <padding>
+                <Insets top="8" right="28" bottom="8" left="28" />
+            </padding>
+            <VBox spacing="6">
+                <Label text="Admin Server IP Address" styleClass="field-label" />
+                <TextField fx:id="serverIpField" promptText="e.g. 192.168.1.10 or localhost" />
+            </VBox>
+            <VBox spacing="6">
+                <Label text="RMI Port" styleClass="field-label" />
+                <TextField fx:id="rmiPortField" promptText="1099" />
+            </VBox>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Button fx:id="testConnectionButton" text="Test Connection" styleClass="btn-secondary" />
+                <Region HBox.hgrow="ALWAYS" />
+                <HBox alignment="CENTER_LEFT" spacing="8">
+                    <Region fx:id="statusDot" styleClass="connection-dot connection-dot-idle" minWidth="12"
+                        minHeight="12" maxWidth="12" maxHeight="12" />
+                    <Label fx:id="connectionStatusLabel" text="Not tested yet" styleClass="connection-status-text"
+                        wrapText="true" />
+                </HBox>
+            </HBox>
+            <Separator />
+            <HBox spacing="12" alignment="CENTER">
+                <Button fx:id="saveContinueButton" text="Save &amp; Continue" styleClass="btn-primary"
+                    defaultButton="true" />
+                <Button fx:id="offlineButton" text="Continue Offline" styleClass="btn-neutral" />
+            </HBox>
+            <Label fx:id="messageLabel" wrapText="true" styleClass="connection-message" />
+        </VBox>
+    </center>
+</BorderPane>
