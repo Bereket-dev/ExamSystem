@@ -188,7 +188,10 @@ public class ExamRepositoryImpl implements ExamRepository {
         exam.setExamName(rs.getString("exam_name"));
         exam.setDescription(rs.getString("description"));
         exam.setSubject(rs.getString("subject"));
-        exam.setCourseId(rs.getInt("course_id"));
+        int courseId = rs.getInt("course_id");
+        if (!rs.wasNull()) {
+            exam.setCourseId(courseId);
+        }
         exam.setDurationMinutes(rs.getInt("duration_minutes"));
         exam.setTotalQuestions(rs.getInt("total_questions"));
         exam.setTotalMarks(rs.getInt("total_marks"));

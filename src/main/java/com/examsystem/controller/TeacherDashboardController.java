@@ -9,6 +9,8 @@ import com.examsystem.service.TeacherService;
 import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.ConfigManager;
 import com.examsystem.util.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -31,6 +33,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class TeacherDashboardController {
+    private static final Logger logger = LoggerFactory.getLogger(TeacherDashboardController.class);
+
     @FXML
     private Label welcomeLabel;
 
@@ -209,16 +213,31 @@ public class TeacherDashboardController {
             setStatus("Select an exam first to assign students.");
             return;
         }
+        if (currentTeacher == null) {
+            setStatus("Teacher profile is still loading. Please wait and try again.");
+            return;
+        }
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/AssignStudents.fxml"));
+            Exam exam = teacherService.getExamsByTeacher(currentTeacher.getTeacherId()).stream()
+                    .filter(e -> e.getExamId() == selected.getExamId())
+                    .findFirst()
+                    .orElse(selected);
+
+            var fxmlUrl = getClass().getResource("/com/examsystem/fxml/AssignStudents.fxml");
+            if (fxmlUrl == null) {
+                setStatus("Assign Students screen resource not found.");
+                return;
+            }
+            FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
             AssignStudentsController controller = loader.getController();
             controller.setTeacherContext(currentTeacher, currentUser);
-            controller.setExam(selected);
+            controller.setExam(exam);
 
             Stage stage = (Stage) createExamButton.getScene().getWindow();
-            UiManager.navigateToApp(stage, root, "Assign Students - " + selected.getExamName());
+            UiManager.navigateToApp(stage, root, "Assign Students - " + exam.getExamName());
         } catch (Exception e) {
+            logger.error("Failed to open assign students screen", e);
             setStatus("Unable to open assignment screen: " + e.getMessage());
         }
     }

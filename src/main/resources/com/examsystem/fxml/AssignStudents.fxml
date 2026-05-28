@@ -4,7 +4,7 @@
 
 <BorderPane prefHeight="650" prefWidth="900" minHeight="520" minWidth="720"
     styleClass="dashboard-root"
-    xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.examsystem.controller.AssignStudentsController">
     <top>
         <HBox styleClass="app-header">
@@ -12,7 +12,7 @@
         </HBox>
     </top>
     <center>
-        <VBox spacing="15" styleClass="content-area" padding="16">
+        <VBox spacing="15" styleClass="content-area">
             <HBox spacing="10" alignment="CENTER_LEFT">
                 <Label text="Select Exam:" />
                 <ComboBox fx:id="examComboBox" HBox.hgrow="ALWAYS" />
@@ -22,10 +22,8 @@
                 <CheckBox fx:id="selectAllCheckBox" text="Select All" />
             </HBox>
             <Label text="Select students to assign" styleClass="subsection-title" />
-            <ScrollPane fitToWidth="true" fitToHeight="true">
-                <content>
-                    <VBox fx:id="studentCheckboxContainer" spacing="8" padding="8" />
-                </content>
+            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="scroll-pane-fit">
+                <VBox fx:id="studentCheckboxContainer" spacing="8" style="-fx-padding: 8;" />
             </ScrollPane>
             <Label fx:id="statusLabel" styleClass="status-error" wrapText="true" />
         </VBox>
@@ -33,7 +31,7 @@
     <bottom>
         <HBox spacing="10" styleClass="content-area" alignment="CENTER_RIGHT">
             <Button fx:id="backButton" text="Back" styleClass="btn-neutral" />
-            <Button fx:id="assignButton" text="Assign Selected" styleClass="btn-secondary" />
+            <Button fx:id="assignButton" text="Assign" styleClass="btn-secondary" />
         </HBox>
     </bottom>
 </BorderPane>

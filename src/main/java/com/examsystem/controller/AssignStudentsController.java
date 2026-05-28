@@ -83,18 +83,19 @@ public class AssignStudentsController implements TeacherScreen {
     public void setExam(Exam exam) {
         this.selectedExam = exam;
         try {
-            if (examComboBox != null && teacher != null) {
-                refreshExamList();
-                Exam matching = examComboBox.getItems().stream()
-                        .filter(e -> e.getExamId() == exam.getExamId())
-                        .findFirst()
-                        .orElse(null);
-                if (matching != null) {
-                    examComboBox.getSelectionModel().select(matching);
-                    examComboBox.setDisable(true);
-                    refreshStudents();
-                }
+            if (examComboBox == null || exam == null) {
+                return;
             }
+            if (teacher != null) {
+                refreshExamList();
+            }
+            Exam matching = examComboBox.getItems().stream()
+                    .filter(e -> e.getExamId() == exam.getExamId())
+                    .findFirst()
+                    .orElse(exam);
+            examComboBox.getSelectionModel().select(matching);
+            examComboBox.setDisable(true);
+            refreshStudents();
         } catch (Exception e) {
             System.err.println("Error setting exam in AssignStudentsController: " + e.getMessage());
             e.printStackTrace();
