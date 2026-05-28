@@ -108,15 +108,8 @@ public final class ConnectionSetupService {
 
         SyncService.getInstance().configureForUser(user);
         SyncManager sync = SyncManager.getInstance();
-        sync.initializeForUser(user);
+        sync.initializeForUser(user, false);
         sync.refreshConnectionState();
-        try {
-            if (sync.isOnline()) {
-                sync.syncAuthoritativePull(false);
-            }
-        } catch (Exception e) {
-            logger.warn("Initial admin backup sync skipped: {}", e.getMessage());
-        }
     }
 
     /** Teacher/student online: connect as RMI client to admin. */
@@ -126,6 +119,7 @@ public final class ConnectionSetupService {
         ConnectionSettingsStore.save(profile);
         DatabaseConnection.setForceOfflineData(false);
 
+        ConfigManager.setRuntimeProperty("connection.offline.mode", "false");
         ConfigManager.setRuntimeProperty("rmi.registry.host", profile.getServerHost());
         ConfigManager.setRuntimeProperty("rmi.registry.port", String.valueOf(profile.getRmiPort()));
 
@@ -133,14 +127,16 @@ public final class ConnectionSetupService {
         connectClientNetworkServices(user, profile.getServerHost(), profile.getRmiPort());
 
         SyncManager sync = SyncManager.getInstance();
-        sync.initializeForUser(user);
+        sync.initializeForUser(user, false);
         sync.refreshConnectionState();
-        try {
-            if (sync.isOnline()) {
-                sync.syncAuthoritativePull(false);
-            }
-        } catch (Exception e) {
-            logger.warn("Initial client sync skipped: {}", e.getMessage());
+    }
+
+    /** Runs authoritative pull after online setup (call from UI with progress dialog). */
+    public static void pullFromServer(SyncManager sync, java.util.function.Consumer<Boolean> onComplete) {
+        if (onComplete == null) {
+            sync.syncAuthoritativePull(false);
+        } else {
+            sync.pullFromServerWithProgress(onComplete);
         }
     }
 

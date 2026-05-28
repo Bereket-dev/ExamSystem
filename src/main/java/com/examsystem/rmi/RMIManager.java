@@ -8,6 +8,7 @@ import com.examsystem.rmi.remote.RemoteAnswerPayload;
 import com.examsystem.rmi.remote.SyncBundle;
 import com.examsystem.rmi.remote.SyncResult;
 import com.examsystem.rmi.server.RMIServer;
+import com.examsystem.util.ConfigManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +58,7 @@ public class RMIManager {
     }
 
     public synchronized boolean connectClient() {
-        if (rmiClient == null) {
-            rmiClient = new RMIClient();
-        }
-        return rmiClient.connect();
+        return connectClientFromConfig();
     }
 
     public synchronized boolean connectClient(String host, int port) {
@@ -78,6 +76,17 @@ public class RMIManager {
     public boolean testConnection(String host, int port) {
         RMIClient probe = new RMIClient(host, port);
         return probe.connect();
+    }
+
+    public synchronized boolean connectClientFromConfig() {
+        String host = ConfigManager.getProperty("rmi.registry.host", "localhost");
+        int port = ConfigManager.getIntProperty("rmi.registry.port", 1099);
+        if (rmiClient == null) {
+            rmiClient = new RMIClient(host, port);
+        } else {
+            rmiClient.configure(host, port);
+        }
+        return rmiClient.connect();
     }
 
     public synchronized void disconnectClient() {

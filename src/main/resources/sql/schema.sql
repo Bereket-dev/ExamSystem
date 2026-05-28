@@ -42,6 +42,42 @@ CREATE TABLE IF NOT EXISTS teachers (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+-- Courses Table (must exist before exams.teacher_id -> course_id FK)
+CREATE TABLE IF NOT EXISTS courses (
+    course_id INT PRIMARY KEY AUTO_INCREMENT,
+    course_code VARCHAR(20) UNIQUE NOT NULL,
+    course_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    department VARCHAR(50),
+    credits INT DEFAULT 3,
+    semester INT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_course_code (course_code),
+    INDEX idx_department (department),
+    INDEX idx_semester (semester),
+    INDEX idx_active (is_active)
+);
+
+-- Teacher-Course Assignments
+CREATE TABLE IF NOT EXISTS teacher_courses (
+    teacher_course_id INT PRIMARY KEY AUTO_INCREMENT,
+    teacher_id INT NOT NULL,
+    course_id INT NOT NULL,
+    assigned_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    removed_date TIMESTAMP NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_teacher_course (teacher_id, course_id),
+    INDEX idx_teacher_id (teacher_id),
+    INDEX idx_course_id (course_id),
+    INDEX idx_active (is_active)
+);
+
 -- Exams Table
 CREATE TABLE IF NOT EXISTS exams (
     exam_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -137,42 +173,6 @@ CREATE TABLE IF NOT EXISTS student_answers (
     FOREIGN KEY (selected_option_id) REFERENCES options(option_id) ON DELETE SET NULL,
     INDEX idx_attempt_id (attempt_id),
     INDEX idx_correct (is_correct)
-);
-
--- Courses Table (for admin course management)
-CREATE TABLE IF NOT EXISTS courses (
-    course_id INT PRIMARY KEY AUTO_INCREMENT,
-    course_code VARCHAR(20) UNIQUE NOT NULL,
-    course_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    department VARCHAR(50),
-    credits INT DEFAULT 3,
-    semester INT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_course_code (course_code),
-    INDEX idx_department (department),
-    INDEX idx_semester (semester),
-    INDEX idx_active (is_active)
-);
-
--- Teacher-Course Assignments (for assigning teachers to courses)
-CREATE TABLE IF NOT EXISTS teacher_courses (
-    teacher_course_id INT PRIMARY KEY AUTO_INCREMENT,
-    teacher_id INT NOT NULL,
-    course_id INT NOT NULL,
-    assigned_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    removed_date TIMESTAMP NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id) ON DELETE CASCADE,
-    FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
-    UNIQUE KEY unique_teacher_course (teacher_id, course_id),
-    INDEX idx_teacher_id (teacher_id),
-    INDEX idx_course_id (course_id),
-    INDEX idx_active (is_active)
 );
 
 -- Audit Log Table

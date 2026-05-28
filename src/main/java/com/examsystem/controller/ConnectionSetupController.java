@@ -5,6 +5,7 @@ import com.examsystem.connection.ConnectionSettingsStore;
 import com.examsystem.connection.ConnectionSetupService;
 import com.examsystem.connection.ConnectionTestResult;
 import com.examsystem.model.User;
+import com.examsystem.sync.SyncManager;
 import com.examsystem.sync.ui.SyncProgressDialog;
 import com.examsystem.util.AuthLogoutHelper;
 import com.examsystem.util.BackgroundLoader;
@@ -182,7 +183,8 @@ public class ConnectionSetupController {
                 },
                 ok -> Platform.runLater(() -> {
                     setActionButtonsDisabled(false);
-                    openDashboardSafely();
+                    setMessage("Central server started — syncing local backup…", "connection-message-success");
+                    pullThenOpenDashboard();
                 }),
                 error -> Platform.runLater(() -> {
                     setActionButtonsDisabled(false);
@@ -259,7 +261,8 @@ public class ConnectionSetupController {
                 },
                 ok -> Platform.runLater(() -> {
                     setClientButtonsDisabled(false);
-                    openDashboardSafely();
+                    setStatusSuccess("Connected — pulling data from server…");
+                    pullThenOpenDashboard();
                 }),
                 error -> Platform.runLater(() -> {
                     setClientButtonsDisabled(false);
@@ -298,9 +301,34 @@ public class ConnectionSetupController {
                 }));
     }
 
+    /** Pull central data over RMI, then open dashboard when successful. */
+    private void pullThenOpenDashboard() {
+        try {
+            Stage stage = resolveStage();
+            SyncManager sync = SyncManager.getInstance();
+            sync.setPrimaryStage(stage);
+            setMessage("Pulling data from central server…", "connection-message");
+            SyncProgressDialog.show(stage, success -> Platform.runLater(() -> {
+                if (success) {
+                    openDashboardSafely();
+                } else {
+                    setMessage(
+                            "Could not download data from the server. Check the admin is online, then retry or use Continue Offline.",
+                            "connection-message-warning");
+                    setActionButtonsDisabled(false);
+                }
+            }));
+        } catch (Exception e) {
+            logger.error("Server pull failed to start", e);
+            setMessage("Could not start sync: " + e.getMessage(), "connection-message-error");
+            setActionButtonsDisabled(false);
+        }
+    }
+
     /** Never blocks the user on navigation failures. */
     private void openDashboardSafely() {
         try {
+            SyncManager.getInstance().startBackgroundSync();
             User user = currentUser != null ? currentUser : Session.getInstance().getCurrentUser();
             if (user == null) {
                 handleLogout();
@@ -308,9 +336,9 @@ public class ConnectionSetupController {
             }
             Stage stage = resolveStage();
             switch (user.getRole()) {
-                case ADMIN -> openAdminPanel(stage);
-                case TEACHER -> openTeacherDashboard(stage);
-                case STUDENT -> openStudentDashboard(stage);
+                case ADMIN -> openAdminPanel(stage, false);
+                case TEACHER -> openTeacherDashboard(stage, false);
+                case STUDENT -> openStudentDashboard(stage, false);
                 default -> setMessage("Unknown role. Use Logout to sign in again.", "connection-message-error");
             }
         } catch (Exception e) {
@@ -335,35 +363,42 @@ public class ConnectionSetupController {
         throw new IllegalStateException("No stage available");
     }
 
-    private void openAdminPanel(Stage stage) throws Exception {
+    private void openAdminPanel(Stage stage, boolean showSyncDialog) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/AdminPanel.fxml"));
         Parent root = loader.load();
         AdminPanelController adminController = loader.getController();
         adminController.setCurrentAdmin(Session.getInstance().getCurrentUser());
         NavigationHelper.openAppScreen(stage, root, "Admin Panel - ExamSystem");
-        tryShowSyncProgress(stage);
+        if (showSyncDialog) {
+            tryShowSyncProgress(stage);
+        }
     }
 
-    private void openTeacherDashboard(Stage stage) throws Exception {
+    private void openTeacherDashboard(Stage stage, boolean showSyncDialog) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/TeacherDashboard.fxml"));
         Parent root = loader.load();
         TeacherDashboardController teacherController = loader.getController();
         teacherController.setUser(Session.getInstance().getCurrentUser());
         NavigationHelper.openAppScreen(stage, root, "Teacher Dashboard - ExamSystem");
-        tryShowSyncProgress(stage);
+        if (showSyncDialog) {
+            tryShowSyncProgress(stage);
+        }
     }
 
-    private void openStudentDashboard(Stage stage) throws Exception {
+    private void openStudentDashboard(Stage stage, boolean showSyncDialog) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/StudentDashboard.fxml"));
         Parent root = loader.load();
         StudentDashboardController studentController = loader.getController();
         studentController.setUser(Session.getInstance().getCurrentUser());
         NavigationHelper.openAppScreen(stage, root, "Student Dashboard - ExamSystem");
-        tryShowSyncProgress(stage);
+        if (showSyncDialog) {
+            tryShowSyncProgress(stage);
+        }
     }
 
     private void tryShowSyncProgress(Stage stage) {
         try {
+            SyncManager.getInstance().setPrimaryStage(stage);
             SyncProgressDialog.show(stage, null);
         } catch (Exception e) {
             logger.debug("Sync progress dialog skipped: {}", e.getMessage());

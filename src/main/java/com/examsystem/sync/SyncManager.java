@@ -147,6 +147,14 @@ public class SyncManager {
     }
 
     public void initializeForUser(User user) {
+        initializeForUser(user, true);
+    }
+
+    /**
+     * @param startBackground when false, defers connection monitor and periodic sync until
+     *                        {@link #startBackgroundSync()} (used before the mandatory post-login pull).
+     */
+    public void initializeForUser(User user, boolean startBackground) {
         this.currentUser = user;
         syncService.configureForUser(user);
         deviceRoleLabel.set(user.getRole().name());
@@ -155,13 +163,22 @@ public class SyncManager {
 
         refreshConnectionState();
 
+        if (startBackground) {
+            startBackgroundSync();
+        }
+        refreshAdminMetrics();
+    }
+
+    public void startBackgroundSync() {
         startConnectionMonitor();
         syncService.startAutoSync();
-        refreshAdminMetrics();
+    }
 
-        if (probeOnline()) {
-            syncAuthoritativePull(false);
-        }
+    /**
+     * Pulls authoritative data from the central server into the local backup (with progress UI).
+     */
+    public void pullFromServerWithProgress(Consumer<Boolean> onComplete) {
+        syncAuthoritativePullWithProgress(onComplete);
     }
 
     public void recordPendingChange(PendingChangeType type) {
