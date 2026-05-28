@@ -3,14 +3,19 @@ package com.examsystem.repository;
 import com.examsystem.db.DatabaseConnection;
 import com.examsystem.model.AssignedExam;
 import com.examsystem.model.Exam;
+import com.examsystem.model.ExamAssignmentSyncResult;
 import com.examsystem.model.Student;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class StudentRepositoryImpl implements StudentRepository {
     private static final Logger logger = LoggerFactory.getLogger(StudentRepositoryImpl.class);
@@ -25,6 +30,10 @@ public class StudentRepositoryImpl implements StudentRepository {
     private static final String SELECT_ASSIGNMENT_ATTEMPTED = "SELECT is_attempted FROM student_exam_assignments WHERE assignment_id = ?";
     private static final String INSERT_ASSIGNMENT = "INSERT INTO student_exam_assignments (exam_id, student_id, is_attempted) VALUES (?, ?, FALSE)";
     private static final String UPDATE_ASSIGNMENT_ATTEMPTED = "UPDATE student_exam_assignments SET is_attempted = TRUE WHERE assignment_id = ?";
+    private static final String SELECT_ASSIGNMENTS_FOR_EXAM =
+            "SELECT student_id, is_attempted FROM student_exam_assignments WHERE exam_id = ?";
+    private static final String DELETE_ASSIGNMENT =
+            "DELETE FROM student_exam_assignments WHERE exam_id = ? AND student_id = ?";
 
     @Override
     public Optional<Student> findByUserId(int userId) {
@@ -181,17 +190,124 @@ public class StudentRepositoryImpl implements StudentRepository {
 
     @Override
     public void assignExamToStudent(int examId, int studentId) {
-        if (findAssignmentId(studentId, examId).isPresent()) {
-            return; // already assigned, ignore duplicate assignment
+        assignExamToStudents(examId, List.of(studentId));
+    }
+
+    @Override
+    public int assignExamToStudents(int examId, List<Integer> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return 0;
         }
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(INSERT_ASSIGNMENT)) {
+        int inserted = 0;
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement stmt = conn.prepareStatement(INSERT_ASSIGNMENT)) {
+                for (int studentId : studentIds) {
+                    if (hasAssignment(conn, studentId, examId)) {
+                        continue;
+                    }
+                    stmt.setInt(1, examId);
+                    stmt.setInt(2, studentId);
+                    stmt.executeUpdate();
+                    stmt.clearParameters();
+                    inserted++;
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                logger.error("Error assigning exam to students", e);
+                throw new RuntimeException("Failed to assign exam to students: " + e.getMessage(), e);
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            logger.error("Error opening connection for exam assignment", e);
+            throw new RuntimeException("Failed to assign exam to students: " + e.getMessage(), e);
+        }
+        return inserted;
+    }
+
+    private boolean hasAssignment(Connection conn, int studentId, int examId) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(SELECT_ASSIGNMENT_ID)) {
+            stmt.setInt(1, studentId);
+            stmt.setInt(2, examId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    @Override
+    public ExamAssignmentSyncResult syncExamAssignments(int examId, List<Integer> selectedStudentIds) {
+        Set<Integer> selected = selectedStudentIds == null ? Set.of() : new HashSet<>(selectedStudentIds);
+        int newlyAssigned = 0;
+        int unassigned = 0;
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                Map<Integer, Boolean> currentAssignments = loadAssignmentsForExam(conn, examId);
+
+                for (Map.Entry<Integer, Boolean> entry : currentAssignments.entrySet()) {
+                    int studentId = entry.getKey();
+                    if (selected.contains(studentId)) {
+                        continue;
+                    }
+                    if (entry.getValue()) {
+                        throw new RuntimeException(
+                                "Cannot unassign a student who has already attempted this exam.");
+                    }
+                    deleteAssignment(conn, examId, studentId);
+                    unassigned++;
+                }
+
+                try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_ASSIGNMENT)) {
+                    for (int studentId : selected) {
+                        if (currentAssignments.containsKey(studentId)) {
+                            continue;
+                        }
+                        insertStmt.setInt(1, examId);
+                        insertStmt.setInt(2, studentId);
+                        insertStmt.executeUpdate();
+                        insertStmt.clearParameters();
+                        newlyAssigned++;
+                    }
+                }
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                logger.error("Error syncing exam assignments", e);
+                throw new RuntimeException("Failed to sync exam assignments: " + e.getMessage(), e);
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            logger.error("Error opening connection for exam assignment sync", e);
+            throw new RuntimeException("Failed to sync exam assignments: " + e.getMessage(), e);
+        }
+
+        return new ExamAssignmentSyncResult(newlyAssigned, unassigned);
+    }
+
+    private Map<Integer, Boolean> loadAssignmentsForExam(Connection conn, int examId) throws SQLException {
+        Map<Integer, Boolean> assignments = new HashMap<>();
+        try (PreparedStatement stmt = conn.prepareStatement(SELECT_ASSIGNMENTS_FOR_EXAM)) {
+            stmt.setInt(1, examId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    assignments.put(rs.getInt("student_id"), rs.getBoolean("is_attempted"));
+                }
+            }
+        }
+        return assignments;
+    }
+
+    private void deleteAssignment(Connection conn, int examId, int studentId) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(DELETE_ASSIGNMENT)) {
             stmt.setInt(1, examId);
             stmt.setInt(2, studentId);
             stmt.executeUpdate();
-        } catch (SQLException e) {
-            logger.error("Error assigning exam to student", e);
-            throw new RuntimeException("Failed to assign exam", e);
         }
     }
 

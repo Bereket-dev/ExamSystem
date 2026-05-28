@@ -2,6 +2,7 @@ package com.examsystem.service;
 
 import com.examsystem.model.Course;
 import com.examsystem.model.Exam;
+import com.examsystem.model.ExamAssignmentSyncResult;
 import com.examsystem.model.ExamMonitoringEntry;
 import com.examsystem.model.ExamReportEntry;
 import com.examsystem.model.Question;
@@ -161,6 +162,23 @@ public class TeacherService {
 
     public void assignExamToStudent(int examId, int studentId) {
         studentRepository.assignExamToStudent(examId, studentId);
+    }
+
+    public int assignExamToStudents(int examId, List<Integer> studentIds) {
+        if (examId <= 0) {
+            throw new IllegalArgumentException("Invalid exam. Please reopen the assignment screen and try again.");
+        }
+        if (studentIds == null || studentIds.isEmpty()) {
+            throw new IllegalArgumentException("Select at least one student to assign.");
+        }
+        return studentRepository.assignExamToStudents(examId, studentIds);
+    }
+
+    public ExamAssignmentSyncResult syncExamAssignments(int examId, List<Integer> selectedStudentIds) {
+        if (examId <= 0) {
+            throw new IllegalArgumentException("Invalid exam. Please reopen the assignment screen and try again.");
+        }
+        return studentRepository.syncExamAssignments(examId, selectedStudentIds);
     }
 
     public boolean isStudentAssignedToExam(int studentId, int examId) {

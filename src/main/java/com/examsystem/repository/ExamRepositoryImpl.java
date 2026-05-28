@@ -161,9 +161,13 @@ public class ExamRepositoryImpl implements ExamRepository {
                 PreparedStatement stmt = conn.prepareStatement(SET_PUBLISHED)) {
             stmt.setBoolean(1, published);
             stmt.setInt(2, examId);
-            stmt.executeUpdate();
+            int updated = stmt.executeUpdate();
+            if (updated == 0) {
+                throw new SQLException("Exam not found or publish status was not updated.");
+            }
         } catch (SQLException e) {
             logger.error("Error setting published", e);
+            throw new RuntimeException("Failed to update exam publish status: " + e.getMessage(), e);
         }
     }
 

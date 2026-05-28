@@ -30,8 +30,8 @@
     </center>
     <bottom>
         <HBox spacing="10" styleClass="content-area" alignment="CENTER_RIGHT">
-            <Button fx:id="backButton" text="Back" styleClass="btn-neutral" />
-            <Button fx:id="assignButton" text="Assign" styleClass="btn-secondary" />
+            <Button fx:id="backButton" text="Back" styleClass="btn-neutral" onAction="#returnToDashboard" />
+            <Button fx:id="assignButton" text="Assign" styleClass="btn-secondary" onAction="#handleAssign" />
         </HBox>
     </bottom>
 </BorderPane>

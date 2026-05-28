@@ -2,6 +2,7 @@ package com.examsystem.repository;
 
 import com.examsystem.model.AssignedExam;
 import com.examsystem.model.Exam;
+import com.examsystem.model.ExamAssignmentSyncResult;
 import com.examsystem.model.Student;
 
 import java.util.List;
@@ -27,4 +28,15 @@ public interface StudentRepository {
     void markAssignmentAttempted(int assignmentId);
 
     void assignExamToStudent(int examId, int studentId);
+
+    /**
+     * Assigns multiple students to an exam. Returns the number of new assignments created.
+     */
+    int assignExamToStudents(int examId, List<Integer> studentIds);
+
+    /**
+     * Synchronizes assignments for an exam with the given selected student IDs.
+     * Checked students are assigned; unchecked students are removed from the exam.
+     */
+    ExamAssignmentSyncResult syncExamAssignments(int examId, List<Integer> selectedStudentIds);
 }
