@@ -78,8 +78,8 @@ public class MonitoringController implements TeacherScreen {
                     String base = data.entries().isEmpty()
                             ? "No active exam attempts."
                             : data.entries().size() + " active attempt(s).";
-                    statusLabel.setText(base + " | TCP clients: " + data.tcpClients()
-                            + " | RMI active/submitted: " + data.rmiSummary().getActiveAttemptCount()
+                    statusLabel.setText(base + " | Active/submitted (RMI): "
+                            + data.rmiSummary().getActiveAttemptCount()
                             + "/" + data.rmiSummary().getSubmittedReportCount());
                 },
                 error -> statusLabel.setText("Failed to load: " + error.getMessage()));

@@ -240,14 +240,54 @@
     -fx-padding: 0 2 0 2;
 }
 
-/* ---------- Distributed sync UX ---------- */
-.sync-status-bar {
-    -fx-background-color: #34495e;
+/* ---------- Distributed sync UX (global status bar) ---------- */
+.sync-chrome-root {
+    -fx-border-color: #2c3e50;
+    -fx-border-width: 0 0 2 0;
 }
 
-.sync-connection-label {
+.sync-status-bar {
+    -fx-background-color: #2c3e50;
+}
+
+.sync-status-indicator {
+    -fx-padding: 0 4 0 0;
+}
+
+.sync-dot {
+    -fx-min-width: 12;
+    -fx-min-height: 12;
+    -fx-pref-width: 12;
+    -fx-pref-height: 12;
+    -fx-max-width: 12;
+    -fx-max-height: 12;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+}
+
+.sync-dot-online {
+    -fx-background-color: #2ecc71;
+    -fx-effect: dropshadow(gaussian, rgba(46, 204, 113, 0.6), 6, 0.4, 0, 0);
+}
+
+.sync-dot-syncing {
+    -fx-background-color: #f1c40f;
+    -fx-effect: dropshadow(gaussian, rgba(241, 196, 15, 0.5), 6, 0.4, 0, 0);
+}
+
+.sync-dot-offline {
+    -fx-background-color: #e74c3c;
+    -fx-effect: dropshadow(gaussian, rgba(231, 76, 60, 0.5), 6, 0.4, 0, 0);
+}
+
+.sync-dot-reconnecting {
+    -fx-background-color: #f39c12;
+    -fx-effect: dropshadow(gaussian, rgba(243, 156, 18, 0.5), 6, 0.4, 0, 0);
+}
+
+.sync-status-text {
     -fx-text-fill: #ecf0f1;
-    -fx-font-size: 13px;
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
 }
 
@@ -256,9 +296,29 @@
     -fx-font-size: 12px;
 }
 
+.sync-spinner {
+    -fx-progress-color: #f1c40f;
+}
+
+.btn-sync {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-padding: 6 14;
+}
+
+.btn-sync:hover {
+    -fx-background-color: #2980b9;
+}
+
+.btn-sync:disabled {
+    -fx-opacity: 0.7;
+}
+
 .sync-panel {
-    -fx-background-color: #f8f9fa;
-    -fx-border-color: #dfe6e9;
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: #bdc3c7;
     -fx-border-width: 0 0 1 0;
 }
 
@@ -268,12 +328,19 @@
 }
 
 .offline-banner {
-    -fx-background-color: #f39c12;
+    -fx-background-color: #fdebd0;
+    -fx-border-color: #f39c12;
+    -fx-border-width: 0 0 1 0;
+}
+
+.offline-banner-icon {
+    -fx-font-size: 16px;
+    -fx-text-fill: #d35400;
 }
 
 .offline-banner .label {
-    -fx-text-fill: #2c3e50;
-    -fx-font-weight: bold;
+    -fx-text-fill: #7f4f24;
+    -fx-font-size: 13px;
 }
 
 .sync-toast {

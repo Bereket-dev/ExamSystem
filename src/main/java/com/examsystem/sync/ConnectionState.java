@@ -4,33 +4,24 @@ package com.examsystem.sync;
  * Real-time connectivity state for distributed sync UX.
  */
 public enum ConnectionState {
-    ONLINE("Connected to Central Server", "sync-status-online"),
-    SYNCING("Syncing...", "sync-status-syncing"),
-    OFFLINE("Offline Mode", "sync-status-offline"),
-    RECONNECTING("Reconnecting to central server...", "sync-status-reconnecting");
+    ONLINE("RMI Connected (Online)", "sync-dot-online"),
+    SYNCING("Syncing...", "sync-dot-syncing"),
+    OFFLINE("Offline Mode", "sync-dot-offline"),
+    RECONNECTING("Reconnecting...", "sync-dot-reconnecting");
 
     private final String displayText;
-    private final String styleClass;
+    private final String dotStyleClass;
 
-    ConnectionState(String displayText, String styleClass) {
+    ConnectionState(String displayText, String dotStyleClass) {
         this.displayText = displayText;
-        this.styleClass = styleClass;
+        this.dotStyleClass = dotStyleClass;
     }
 
     public String getDisplayText() {
         return displayText;
     }
 
-    public String getStyleClass() {
-        return styleClass;
-    }
-
-    public String getIndicatorEmoji() {
-        return switch (this) {
-            case ONLINE -> "🟢";
-            case SYNCING -> "🟡";
-            case OFFLINE -> "🔴";
-            case RECONNECTING -> "🟡";
-        };
+    public String getDotStyleClass() {
+        return dotStyleClass;
     }
 }

@@ -3,6 +3,7 @@ package com.examsystem.controller;
 import com.examsystem.sync.ConnectionState;
 import com.examsystem.sync.SyncManager;
 import com.examsystem.sync.ui.SyncProgressDialog;
+import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -10,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -22,7 +24,7 @@ public class SyncChromeController {
     private Label offlineBannerLabel;
 
     @FXML
-    private Label connectionIndicator;
+    private Region statusDot;
 
     @FXML
     private Label connectionStatusLabel;
@@ -65,25 +67,22 @@ public class SyncChromeController {
                 "You are currently working offline. Changes will sync automatically when connection returns.");
 
         connectionStatusLabel.textProperty().bind(
-                javafx.beans.binding.Bindings.createStringBinding(
-                        () -> {
-                            ConnectionState s = syncManager.connectionStateProperty().get();
-                            return s != null ? s.getIndicatorEmoji() + " " + s.getDisplayText() : "";
-                        },
-                        syncManager.connectionStateProperty()));
+                Bindings.createStringBinding(() -> {
+                    ConnectionState state = syncManager.connectionStateProperty().get();
+                    return state != null ? state.getDisplayText() : ConnectionState.OFFLINE.getDisplayText();
+                }, syncManager.connectionStateProperty()));
 
-        connectionIndicator.textProperty().bind(connectionStatusLabel.textProperty());
+        syncManager.connectionStateProperty().addListener((obs, oldState, newState) -> updateStatusDot(newState));
+
         topologyLabel.textProperty().bind(syncManager.topologyTextProperty());
-        lastSyncLabel.textProperty().bind(
-                javafx.beans.binding.Bindings.concat("Last sync: ", syncManager.lastSyncTimeProperty()));
+        lastSyncLabel.textProperty().bind(Bindings.concat("Last sync: ", syncManager.lastSyncTimeProperty()));
         pendingLabel.textProperty().bind(
-                javafx.beans.binding.Bindings.createStringBinding(
+                Bindings.createStringBinding(
                         () -> "Pending sync: " + syncManager.pendingCountProperty().get() + " changes",
                         syncManager.pendingCountProperty()));
         databaseSourceLabel.textProperty().bind(
-                javafx.beans.binding.Bindings.concat("Database: ", syncManager.databaseSourceProperty()));
-        syncModeLabel.textProperty().bind(
-                javafx.beans.binding.Bindings.concat("Mode: ", syncManager.syncModeProperty()));
+                Bindings.concat("Database: ", syncManager.databaseSourceProperty()));
+        syncModeLabel.textProperty().bind(Bindings.concat("Mode: ", syncManager.syncModeProperty()));
         operationLabel.textProperty().bind(syncManager.currentOperationProperty());
 
         offlineBanner.visibleProperty().bind(syncManager.offlineBannerVisibleProperty());
@@ -92,11 +91,33 @@ public class SyncChromeController {
         syncSpinner.managedProperty().bind(syncManager.syncInProgressProperty());
 
         syncNowButton.disableProperty().bind(syncManager.syncInProgressProperty());
-        syncNowButton.setOnAction(e -> {
-            Stage stage = syncNowButton.getScene() != null ? (Stage) syncNowButton.getScene().getWindow() : null;
-            SyncProgressDialog.show(stage, null);
-        });
+        syncNowButton.textProperty().bind(
+                Bindings.when(syncManager.syncInProgressProperty())
+                        .then("Syncing…")
+                        .otherwise("Sync"));
+
+        syncNowButton.setOnAction(e -> triggerManualSync());
         syncHistoryButton.setOnAction(e -> openSyncHistory());
+
+        updateStatusDot(syncManager.connectionStateProperty().get());
+        syncManager.refreshConnectionState();
+    }
+
+    private void updateStatusDot(ConnectionState state) {
+        if (statusDot == null) {
+            return;
+        }
+        statusDot.getStyleClass().removeIf(s -> s.startsWith("sync-dot-") && !"sync-dot".equals(s));
+        ConnectionState effective = state != null ? state : ConnectionState.OFFLINE;
+        if (!statusDot.getStyleClass().contains("sync-dot")) {
+            statusDot.getStyleClass().add("sync-dot");
+        }
+        statusDot.getStyleClass().add(effective.getDotStyleClass());
+    }
+
+    private void triggerManualSync() {
+        Stage stage = syncNowButton.getScene() != null ? (Stage) syncNowButton.getScene().getWindow() : null;
+        SyncProgressDialog.show(stage, null);
     }
 
     private void openSyncHistory() {

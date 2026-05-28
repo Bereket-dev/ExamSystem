@@ -8,7 +8,6 @@ import com.examsystem.rmi.RMIManager;
 import com.examsystem.sync.SyncManager;
 import com.examsystem.service.TeacherService;
 import com.examsystem.util.BackgroundLoader;
-import com.examsystem.util.ConfigManager;
 import com.examsystem.util.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,9 +43,6 @@ public class TeacherDashboardController {
 
     @FXML
     private Label statusLabel;
-
-    @FXML
-    private Label networkStatusLabel;
 
     @FXML
     private Button createExamButton;
@@ -165,21 +161,11 @@ public class TeacherDashboardController {
 
     private void startTcpServer() {
         try {
-            NetworkManager network = NetworkManager.getInstance();
-            network.startServer();
-            int port = ConfigManager.getIntProperty("network.server.port", 5000);
-            int clients = network.getActiveClientCount();
-            boolean rmiRunning = RMIManager.getInstance().isServerRunning();
-            int rmiPort = ConfigManager.getIntProperty("rmi.registry.port", 1099);
-            if (networkStatusLabel != null) {
-                networkStatusLabel.setText(String.format(
-                        "TCP: port %d (%d clients) | RMI: port %d (%s)",
-                        port, clients, rmiPort, rmiRunning ? "running" : "stopped"));
-            }
+            NetworkManager.getInstance().startServer();
+            SyncManager.getInstance().refreshConnectionState();
         } catch (Exception e) {
-            if (networkStatusLabel != null) {
-                networkStatusLabel.setText("TCP Server: failed to start - " + e.getMessage());
-            }
+            logger.warn("TCP server could not start: {}", e.getMessage());
+            SyncManager.getInstance().refreshConnectionState();
         }
     }
 

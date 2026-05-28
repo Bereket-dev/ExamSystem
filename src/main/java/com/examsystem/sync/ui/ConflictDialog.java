@@ -44,12 +44,12 @@ public final class ConflictDialog {
         if (owner != null) {
             alert.initOwner(owner);
         }
-        alert.showAndWait().ifPresent(choice -> {
+        alert.showAndWait().ifPresentOrElse(choice -> {
             if (choice == keepLocal) {
                 onResolved.accept(Resolution.KEEP_LOCAL);
             } else if (choice == keepServer) {
                 onResolved.accept(Resolution.KEEP_SERVER);
             }
-        });
+        }, () -> { /* cancelled — no resolution */ });
     }
 }

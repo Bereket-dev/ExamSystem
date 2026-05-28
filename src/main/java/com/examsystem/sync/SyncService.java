@@ -6,6 +6,7 @@ import com.examsystem.model.User;
 import com.examsystem.rmi.RMIManager;
 import com.examsystem.rmi.remote.SyncBundle;
 import com.examsystem.rmi.remote.SyncResult;
+import com.examsystem.sync.SyncManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,7 +134,12 @@ public class SyncService {
             if (DatabaseConnection.isAdminDevice()) {
                 mirrorCentralToBackup();
             } else if (RMIManager.getInstance().isClientConnected()) {
-                synchronizeWithCentral();
+                SyncManager syncManager = SyncManager.getInstance();
+                if (syncManager.pendingCountProperty().get() > 0) {
+                    syncManager.syncNow(false);
+                } else {
+                    syncManager.syncAuthoritativePull(false);
+                }
             }
         } catch (Exception e) {
             logger.warn("Scheduled sync error: {}", e.getMessage());

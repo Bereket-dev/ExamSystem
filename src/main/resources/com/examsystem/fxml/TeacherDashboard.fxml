@@ -21,7 +21,6 @@
                 <Button fx:id="monitoringButton" text="Live Monitoring" styleClass="btn-warning" />
                 <Button fx:id="reportsButton" text="Reports" styleClass="btn-teal" />
             </HBox>
-            <Label fx:id="networkStatusLabel" text="TCP Server: starting..." styleClass="status-info" />
             <Label text="Your Exams" styleClass="section-title" />
             <ListView fx:id="examListView" VBox.vgrow="ALWAYS" prefHeight="400" />
             <Label fx:id="statusLabel" styleClass="status-error" wrapText="true" />

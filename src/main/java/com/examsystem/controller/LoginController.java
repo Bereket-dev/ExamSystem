@@ -124,7 +124,9 @@ public class LoginController {
         try {
             Session.getInstance().login(user);
             connectToNetwork(user, username, password);
-            SyncManager.getInstance().initializeForUser(user);
+            SyncManager syncManager = SyncManager.getInstance();
+            syncManager.initializeForUser(user);
+            syncManager.refreshConnectionState();
             navigateByRole(user.getRole());
         } catch (Exception e) {
             showError("Error: " + e.getMessage());

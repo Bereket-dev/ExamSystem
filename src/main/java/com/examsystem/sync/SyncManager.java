@@ -19,7 +19,10 @@ import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -27,6 +30,7 @@ import java.util.function.Consumer;
  */
 public class SyncManager {
     private static final Logger logger = LoggerFactory.getLogger(SyncManager.class);
+    private static final String MSG_SYNCED_WITH_SERVER = "Successfully synced with central server";
     private static SyncManager instance;
 
     private final SyncService syncService = SyncService.getInstance();
@@ -55,7 +59,7 @@ public class SyncManager {
     private Stage primaryStage;
     private User currentUser;
     private final AtomicBoolean manualSyncMode = new AtomicBoolean(false);
-    private SyncConflict pendingConflict;
+    private volatile boolean lastSyncWasAuthoritativePull;
 
     private SyncManager() {
         connectionState.addListener((obs, old, neu) -> {
@@ -149,17 +153,15 @@ public class SyncManager {
         updateDatabaseSourceLabel();
         updateTopology();
 
-        if (user.getRole() == User.UserRole.ADMIN) {
-            connectionState.set(RMIManager.getInstance().isServerRunning() ? ConnectionState.ONLINE
-                    : ConnectionState.OFFLINE);
-        } else {
-            connectionState.set(RMIManager.getInstance().isClientConnected() ? ConnectionState.ONLINE
-                    : ConnectionState.OFFLINE);
-        }
+        refreshConnectionState();
 
         startConnectionMonitor();
         syncService.startAutoSync();
         refreshAdminMetrics();
+
+        if (probeOnline()) {
+            syncAuthoritativePull(false);
+        }
     }
 
     public void recordPendingChange(PendingChangeType type) {
@@ -175,15 +177,37 @@ public class SyncManager {
         runSyncTask(manual ? SyncType.MANUAL : SyncType.AUTO, this::performFullSync);
     }
 
-    public void syncNowWithProgress(Consumer<Boolean> onComplete) {
+    /**
+     * Server-authoritative pull only (used on connect/reconnect and when there are no pending local edits).
+     */
+    public void syncAuthoritativePull(boolean manual) {
         if (syncInProgress.get()) {
-            onComplete.accept(false);
+            return;
+        }
+        manualSyncMode.set(manual);
+        syncMode.set(manual ? "Manual" : "Auto");
+        runSyncTask(manual ? SyncType.MANUAL : SyncType.AUTO, this::performAuthoritativePullOnly);
+    }
+
+    public void syncNowWithProgress(Consumer<Boolean> onComplete) {
+        syncAuthoritativePullWithProgress(onComplete);
+    }
+
+    public void syncAuthoritativePullWithProgress(Consumer<Boolean> onComplete) {
+        if (syncInProgress.get()) {
+            if (onComplete != null) {
+                onComplete.accept(false);
+            }
             return;
         }
         runSyncTask(SyncType.MANUAL, () -> {
-            SyncResult result = performFullSync();
+            SyncResult result = pendingQueue.getPendingCount() > 0
+                    ? performSyncWithPendingChanges(createProgressListener())
+                    : performAuthoritativePullOnly();
             boolean ok = result != null && result.isSuccess();
-            Platform.runLater(() -> onComplete.accept(ok));
+            if (onComplete != null) {
+                Platform.runLater(() -> onComplete.accept(ok));
+            }
             return result != null ? result : SyncResult.fail("Sync failed");
         });
     }
@@ -242,9 +266,15 @@ public class SyncManager {
                 connectionState.set(probeOnline() ? ConnectionState.ONLINE : ConnectionState.OFFLINE);
                 toast(success ? NotificationService.ToastType.SUCCESS : NotificationService.ToastType.INFO,
                         result.getMessage());
-                if (type == SyncType.MANUAL || type == SyncType.AUTO) {
-                    NotificationService.getInstance().showSuccess(primaryStage, "Sync completed successfully");
+                String toastMsg;
+                if (DatabaseConnection.isAdminDevice()) {
+                    toastMsg = "Local backup saved successfully";
+                } else if (lastSyncWasAuthoritativePull) {
+                    toastMsg = MSG_SYNCED_WITH_SERVER;
+                } else {
+                    toastMsg = "Successfully synced from central database";
                 }
+                NotificationService.getInstance().showSuccess(primaryStage, toastMsg);
             } else {
                 connectionState.set(probeOnline() ? ConnectionState.RECONNECTING : ConnectionState.OFFLINE);
                 String msg = result != null ? result.getMessage() : "Sync failed";
@@ -255,20 +285,23 @@ public class SyncManager {
         });
     }
 
-    private SyncResult performFullSync() throws Exception {
-        SyncProgressListener listener = (label, fraction) -> Platform.runLater(() -> {
+    private SyncProgressListener createProgressListener() {
+        return (label, fraction) -> Platform.runLater(() -> {
             currentOperation.set(label);
             syncProgress.set(fraction);
         });
+    }
+
+    private SyncResult performFullSync() throws Exception {
+        SyncProgressListener listener = createProgressListener();
 
         if (DatabaseConnection.isAdminDevice()) {
+            lastSyncWasAuthoritativePull = true;
             listener.onProgress("Backing up to local H2...", 0.1);
             try (Connection central = DatabaseConnection.getCentralConnection();
                     Connection backup = DatabaseConnection.getBackupConnection()) {
                 SyncBundle bundle = databaseSyncService.exportAll(central, listener);
-                SyncResult result = databaseSyncService.importAll(backup, bundle, true, listener);
-                NotificationService.getInstance().showInfo(primaryStage, "Backup saved to local database");
-                return result;
+                return databaseSyncService.importAll(backup, bundle, true, listener);
             }
         }
 
@@ -279,48 +312,126 @@ public class SyncManager {
             return SyncResult.fail("Offline — changes saved locally");
         }
 
-        ClientSessionRegistry.getInstance().heartbeat(Session.getInstance().getCurrentUser() != null
-                ? Session.getInstance().getCurrentUser().getUsername()
-                : "client");
+        registerClientHeartbeat();
 
-        listener.onProgress("Pulling from central server...", 0.15);
-        SyncBundle remote = RMIManager.getInstance().pullSyncBundle();
+        if (pendingQueue.getPendingCount() > 0) {
+            return performSyncWithPendingChanges(listener);
+        }
+        return performAuthoritativePullOnly();
+    }
 
-        try (Connection backup = DatabaseConnection.getBackupConnection()) {
-            SyncBundle local = databaseSyncService.exportAll(backup, null);
-            List<SyncConflict> conflicts = conflictDetector.detect(local, remote);
-            if (!conflicts.isEmpty() && pendingConflict == null) {
-                pendingConflict = conflicts.get(0);
-                Platform.runLater(() -> com.examsystem.sync.ui.ConflictDialog.show(primaryStage, pendingConflict, resolution -> {
-                    pendingConflict = null;
-                    if (resolution == com.examsystem.sync.ui.ConflictDialog.Resolution.KEEP_LOCAL) {
-                        try {
-                            pushOnly(listener);
-                        } catch (Exception ex) {
-                            logger.error("Push after conflict failed", ex);
-                        }
-                    } else {
-                        try {
-                            pullOnly(remote, listener);
-                        } catch (Exception ex) {
-                            logger.error("Pull after conflict failed", ex);
-                        }
-                    }
-                }));
-                return SyncResult.fail("Conflicts detected — awaiting your resolution");
-            }
+    /**
+     * Server is source of truth: replace local H2 with central data. No conflict checks.
+     */
+    private SyncResult performAuthoritativePullOnly() throws Exception {
+        lastSyncWasAuthoritativePull = true;
+        SyncProgressListener listener = createProgressListener();
+
+        if (DatabaseConnection.isAdminDevice()) {
+            return performFullSyncAdminBackup(listener);
         }
 
-        listener.onProgress("Applying central data locally...", 0.4);
+        if (!probeOnline()) {
+            return SyncResult.fail("Cannot reach central server");
+        }
+
+        registerClientHeartbeat();
+        listener.onProgress("Fetching data from central server...", 0.2);
         SyncResult pullResult = pullWithProgress(listener);
+        if (pullResult.isSuccess()) {
+            return SyncResult.ok(MSG_SYNCED_WITH_SERVER, pullResult.getTablesSynced(),
+                    pullResult.getRowsSynced());
+        }
+        return pullResult;
+    }
 
-        listener.onProgress("Uploading local changes...", 0.75);
+    private SyncResult performFullSyncAdminBackup(SyncProgressListener listener) throws Exception {
+        try (Connection central = DatabaseConnection.getCentralConnection();
+                Connection backup = DatabaseConnection.getBackupConnection()) {
+            SyncBundle bundle = databaseSyncService.exportAll(central, listener);
+            return databaseSyncService.importAll(backup, bundle, true, listener);
+        }
+    }
+
+    /**
+     * When the user has unsynced local edits: push first, with conflict UI only if server also changed those rows.
+     */
+    private SyncResult performSyncWithPendingChanges(SyncProgressListener listener) throws Exception {
+        lastSyncWasAuthoritativePull = false;
+
+        if (!probeOnline()) {
+            return SyncResult.fail("Cannot reach central server");
+        }
+
+        registerClientHeartbeat();
+
+        listener.onProgress("Checking for concurrent edits...", 0.15);
+        SyncBundle remote = RMIManager.getInstance().pullSyncBundle();
+        SyncBundle local;
+        try (Connection backup = DatabaseConnection.getBackupConnection()) {
+            local = databaseSyncService.exportAll(backup, null);
+        }
+
+        List<SyncConflict> conflicts = conflictDetector.detect(local, remote);
+        if (!conflicts.isEmpty()) {
+            com.examsystem.sync.ui.ConflictDialog.Resolution resolution = promptConflictResolution(
+                    conflicts.get(0));
+            if (resolution == null) {
+                return SyncResult.fail("Sync cancelled");
+            }
+            if (resolution == com.examsystem.sync.ui.ConflictDialog.Resolution.KEEP_SERVER) {
+                listener.onProgress("Applying server data locally...", 0.4);
+                try (Connection backup = DatabaseConnection.getBackupConnection()) {
+                    databaseSyncService.importAll(backup, remote, true, listener);
+                }
+                pendingQueue.clear();
+                return SyncResult.ok(MSG_SYNCED_WITH_SERVER, remote.getTables().size(), 0);
+            }
+            listener.onProgress("Uploading local changes to server...", 0.5);
+            SyncResult pushResult = pushWithProgress(listener);
+            if (!pushResult.isSuccess()) {
+                return pushResult;
+            }
+            listener.onProgress("Refreshing from central server...", 0.85);
+            return pullWithProgress(listener);
+        }
+
+        listener.onProgress("Uploading local changes to server...", 0.4);
         SyncResult pushResult = pushWithProgress(listener);
-
-        if (pushResult.isSuccess()) {
+        if (!pushResult.isSuccess()) {
             return pushResult;
         }
-        return pullResult.isSuccess() ? pullResult : pushResult;
+        listener.onProgress("Refreshing from central server...", 0.75);
+        SyncResult pullResult = pullWithProgress(listener);
+        if (pullResult.isSuccess()) {
+            return SyncResult.ok("Successfully synced from central database",
+                    pullResult.getTablesSynced(), pullResult.getRowsSynced());
+        }
+        return pullResult;
+    }
+
+    private com.examsystem.sync.ui.ConflictDialog.Resolution promptConflictResolution(SyncConflict conflict)
+            throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<com.examsystem.sync.ui.ConflictDialog.Resolution> choice = new AtomicReference<>();
+
+        Platform.runLater(() -> {
+            try {
+                com.examsystem.sync.ui.ConflictDialog.show(primaryStage, conflict, choice::set);
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        latch.await(5, TimeUnit.MINUTES);
+        return choice.get();
+    }
+
+    private void registerClientHeartbeat() {
+        String id = Session.getInstance().getCurrentUser() != null
+                ? Session.getInstance().getCurrentUser().getUsername()
+                : "client";
+        ClientSessionRegistry.getInstance().heartbeat(id);
     }
 
     private SyncResult pullWithProgress(SyncProgressListener listener) throws Exception {
@@ -345,16 +456,6 @@ public class SyncManager {
         }
     }
 
-    private void pullOnly(SyncBundle remote, SyncProgressListener listener) throws Exception {
-        try (Connection backup = DatabaseConnection.getBackupConnection()) {
-            databaseSyncService.importAll(backup, remote, true, listener);
-        }
-    }
-
-    private void pushOnly(SyncProgressListener listener) throws Exception {
-        pushWithProgress(listener);
-    }
-
     private void startConnectionMonitor() {
         if (connectionMonitor != null) {
             connectionMonitor.stop();
@@ -370,7 +471,7 @@ public class SyncManager {
                             connectionState.set(ConnectionState.ONLINE);
                             NotificationService.getInstance().showSuccess(primaryStage,
                                     "Reconnected to central server");
-                            syncNow(false);
+                            syncAuthoritativePull(false);
                         } else {
                             connectionState.set(ConnectionState.ONLINE);
                         }
@@ -418,11 +519,41 @@ public class SyncManager {
         return false;
     }
 
+    /**
+     * Re-evaluates RMI connectivity and updates the global status indicator.
+     */
+    public void refreshConnectionState() {
+        if (syncInProgress.get()) {
+            return;
+        }
+        Runnable update = () -> {
+            ConnectionState next = probeOnline() ? ConnectionState.ONLINE : ConnectionState.OFFLINE;
+            connectionState.set(next);
+            updateTopology();
+        };
+        if (Platform.isFxApplicationThread()) {
+            update.run();
+        } else {
+            Platform.runLater(update);
+        }
+    }
+
     private boolean probeOnline() {
         if (DatabaseConnection.isAdminDevice()) {
             return RMIManager.getInstance().isServerRunning();
         }
-        return RMIManager.getInstance().isClientConnected();
+        RMIManager rmi = RMIManager.getInstance();
+        if (!rmi.isClientConnected()) {
+            rmi.connectClient();
+        }
+        if (!rmi.isClientConnected()) {
+            return false;
+        }
+        try {
+            return "PONG".equals(rmi.ping());
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void updateDatabaseSourceLabel() {
@@ -496,6 +627,6 @@ public class SyncManager {
     }
 
     public void runInitialSync(Consumer<Boolean> onComplete) {
-        syncNowWithProgress(onComplete);
+        syncAuthoritativePullWithProgress(onComplete);
     }
 }
