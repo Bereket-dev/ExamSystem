@@ -17,4 +17,6 @@ public interface ExamAttemptRepository {
     List<ExamMonitoringEntry> findActiveAttemptsByTeacherId(int teacherId);
 
     List<ExamReportEntry> findSubmittedReportsByTeacherId(int teacherId);
+
+    List<ExamReportEntry> findSubmittedReportsByTeacherAndExam(int teacherId, int examId);
 }

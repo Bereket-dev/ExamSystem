@@ -17,6 +17,9 @@ public class QuestionRepositoryImpl implements QuestionRepository {
     private static final String SELECT_OPTIONS_BY_QUESTION = "SELECT * FROM options WHERE question_id = ? ORDER BY sequence_order";
     private static final String INSERT_QUESTION = "INSERT INTO questions (exam_id, question_text, question_type, marks, sequence_order, difficulty_level) VALUES (?, ?, ?, ?, ?, ?)";
     private static final String INSERT_OPTION = "INSERT INTO options (question_id, option_text, is_correct, sequence_order) VALUES (?, ?, ?, ?)";
+    private static final String UPDATE_QUESTION = "UPDATE questions SET question_text = ?, question_type = ?, marks = ?, sequence_order = ?, difficulty_level = ? WHERE question_id = ?";
+    private static final String DELETE_OPTIONS_BY_QUESTION = "DELETE FROM options WHERE question_id = ?";
+    private static final String DELETE_QUESTION = "DELETE FROM questions WHERE question_id = ?";
     private static final String COUNT_BY_EXAM = "SELECT COUNT(*) AS count FROM questions WHERE exam_id = ?";
 
     @Override
@@ -114,6 +117,51 @@ public class QuestionRepositoryImpl implements QuestionRepository {
         } catch (SQLException e) {
             logger.error("Error saving option", e);
             throw new RuntimeException("Failed to save option", e);
+        }
+    }
+
+    @Override
+    public void updateQuestion(Question question) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(UPDATE_QUESTION)) {
+            stmt.setString(1, question.getQuestionText());
+            stmt.setString(2, mapQuestionType(question.getQuestionType()));
+            stmt.setInt(3, question.getMarks());
+            stmt.setInt(4, question.getSequenceOrder());
+            stmt.setString(5, question.getDifficultyLevel().name().toLowerCase());
+            stmt.setInt(6, question.getQuestionId());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error updating question", e);
+            throw new RuntimeException("Failed to update question", e);
+        }
+    }
+
+    @Override
+    public void deleteQuestion(int questionId) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(DELETE_QUESTION)) {
+            stmt.setInt(1, questionId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error deleting question", e);
+            throw new RuntimeException("Failed to delete question", e);
+        }
+    }
+
+    @Override
+    public void replaceOptions(int questionId, List<QuestionOption> options) {
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement deleteStmt = conn.prepareStatement(DELETE_OPTIONS_BY_QUESTION)) {
+            deleteStmt.setInt(1, questionId);
+            deleteStmt.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error clearing options for question", e);
+            throw new RuntimeException("Failed to clear options", e);
+        }
+        for (QuestionOption option : options) {
+            option.setQuestionId(questionId);
+            saveOption(option);
         }
     }
 

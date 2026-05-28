@@ -37,7 +37,7 @@
 
 - **User** (Phase 1 - enhanced)
 - **Exam** - Exam definition and scheduling
-- **Question** - Question with types (MCQ, True/False, Short Answer)
+- **Question** - Question with types (MCQ, True/False)
 - **Student** - Student profile and enrollment
 
 ### 4. Unit Tests

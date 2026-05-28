@@ -29,7 +29,7 @@ public class ExamAttemptRepositoryImpl implements ExamAttemptRepository {
                     + "WHERE e.teacher_id = ? AND ea.submission_status = 'in_progress' "
                     + "ORDER BY ea.start_time DESC";
     private static final String SELECT_REPORTS_BY_TEACHER =
-            "SELECT u.full_name AS student_name, e.exam_name, ea.total_marks_obtained, e.total_marks, "
+            "SELECT e.exam_id, u.full_name AS student_name, e.exam_name, ea.total_marks_obtained, e.total_marks, "
                     + "ea.submission_status, ea.end_time "
                     + "FROM exam_attempts ea "
                     + "JOIN student_exam_assignments sea ON ea.assignment_id = sea.assignment_id "
@@ -37,6 +37,16 @@ public class ExamAttemptRepositoryImpl implements ExamAttemptRepository {
                     + "JOIN users u ON s.user_id = u.user_id "
                     + "JOIN exams e ON sea.exam_id = e.exam_id "
                     + "WHERE e.teacher_id = ? AND ea.submission_status = 'submitted' "
+                    + "ORDER BY ea.end_time DESC";
+    private static final String SELECT_REPORTS_BY_TEACHER_EXAM =
+            "SELECT e.exam_id, u.full_name AS student_name, e.exam_name, ea.total_marks_obtained, e.total_marks, "
+                    + "ea.submission_status, ea.end_time "
+                    + "FROM exam_attempts ea "
+                    + "JOIN student_exam_assignments sea ON ea.assignment_id = sea.assignment_id "
+                    + "JOIN students s ON sea.student_id = s.student_id "
+                    + "JOIN users u ON s.user_id = u.user_id "
+                    + "JOIN exams e ON sea.exam_id = e.exam_id "
+                    + "WHERE e.teacher_id = ? AND e.exam_id = ? AND ea.submission_status = 'submitted' "
                     + "ORDER BY ea.end_time DESC";
 
     @Override
@@ -128,6 +138,7 @@ public class ExamAttemptRepositoryImpl implements ExamAttemptRepository {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     ExamReportEntry entry = new ExamReportEntry();
+                    entry.setExamId(rs.getInt("exam_id"));
                     entry.setStudentName(rs.getString("student_name"));
                     entry.setExamName(rs.getString("exam_name"));
                     entry.setMarksObtained(rs.getInt("total_marks_obtained"));
@@ -142,6 +153,35 @@ public class ExamAttemptRepositoryImpl implements ExamAttemptRepository {
             }
         } catch (SQLException e) {
             logger.error("Error loading reports for teacher", e);
+        }
+        return entries;
+    }
+
+    @Override
+    public List<ExamReportEntry> findSubmittedReportsByTeacherAndExam(int teacherId, int examId) {
+        List<ExamReportEntry> entries = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(SELECT_REPORTS_BY_TEACHER_EXAM)) {
+            stmt.setInt(1, teacherId);
+            stmt.setInt(2, examId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    ExamReportEntry entry = new ExamReportEntry();
+                    entry.setExamId(rs.getInt("exam_id"));
+                    entry.setStudentName(rs.getString("student_name"));
+                    entry.setExamName(rs.getString("exam_name"));
+                    entry.setMarksObtained(rs.getInt("total_marks_obtained"));
+                    entry.setTotalMarks(rs.getInt("total_marks"));
+                    entry.setSubmissionStatus(rs.getString("submission_status"));
+                    Timestamp end = rs.getTimestamp("end_time");
+                    if (end != null) {
+                        entry.setEndTime(end.toLocalDateTime());
+                    }
+                    entries.add(entry);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error loading reports for teacher exam", e);
         }
         return entries;
     }

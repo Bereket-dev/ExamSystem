@@ -18,8 +18,6 @@
         <VBox spacing="16" styleClass="content-area">
             <HBox spacing="10">
                 <Button fx:id="createExamButton" text="Create Exam" styleClass="btn-primary" />
-                <Button fx:id="addQuestionsButton" text="Add Questions" styleClass="btn-secondary" />
-                <Button fx:id="assignStudentsButton" text="Assign Students" styleClass="btn-purple" />
                 <Button fx:id="monitoringButton" text="Live Monitoring" styleClass="btn-warning" />
                 <Button fx:id="reportsButton" text="Reports" styleClass="btn-teal" />
             </HBox>

@@ -12,18 +12,24 @@
         </HBox>
     </top>
     <center>
-        <VBox spacing="16" styleClass="form-grid">
-            <Label text="Select Exam:" styleClass="subsection-title" />
-            <ComboBox fx:id="examComboBox" prefWidth="400" maxWidth="Infinity" />
-            <Label text="Select Student:" styleClass="subsection-title" />
-            <ListView fx:id="studentListView" prefHeight="350" VBox.vgrow="ALWAYS" />
-            <Label fx:id="statusLabel" styleClass="status-success" wrapText="true" />
+        <VBox spacing="15" styleClass="content-area" padding="16">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Select Exam:" />
+                <ComboBox fx:id="examComboBox" HBox.hgrow="ALWAYS" />
+            </HBox>
+            <Label text="Select students to assign" styleClass="subsection-title" />
+            <ScrollPane fitToWidth="true" fitToHeight="true">
+                <content>
+                    <VBox fx:id="studentCheckboxContainer" spacing="8" padding="8" />
+                </content>
+            </ScrollPane>
+            <Label fx:id="statusLabel" styleClass="status-error" wrapText="true" />
         </VBox>
     </center>
     <bottom>
         <HBox spacing="10" styleClass="content-area" alignment="CENTER_RIGHT">
             <Button fx:id="backButton" text="Back" styleClass="btn-neutral" />
-            <Button fx:id="assignButton" text="Assign" styleClass="btn-purple" />
+            <Button fx:id="assignButton" text="Assign Selected" styleClass="btn-secondary" />
         </HBox>
     </bottom>
 </BorderPane>

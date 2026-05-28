@@ -81,8 +81,20 @@ public class StudentService {
         return questionRepository.findByExamId(examId);
     }
 
+    public List<Question> getRandomizedQuestions(int examId) {
+        List<Question> questions = new java.util.ArrayList<>(questionRepository.findByExamId(examId));
+        java.util.Collections.shuffle(questions);
+        return questions;
+    }
+
     public List<QuestionOption> getOptions(int questionId) {
         return questionRepository.findOptionsByQuestionId(questionId);
+    }
+
+    public List<QuestionOption> getRandomizedOptions(int questionId) {
+        List<QuestionOption> options = new java.util.ArrayList<>(questionRepository.findOptionsByQuestionId(questionId));
+        java.util.Collections.shuffle(options);
+        return options;
     }
 
     public Optional<StudentAnswer> getAnswer(int attemptId, int questionId) {

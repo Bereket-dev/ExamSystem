@@ -1,6 +1,7 @@
 package com.examsystem.controller;
 
 import com.examsystem.model.ExamReportEntry;
+import com.examsystem.model.Exam;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.service.TeacherService;
@@ -12,14 +13,31 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import com.examsystem.util.UiManager;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
 
 public class ReportsController implements TeacherScreen {
     @FXML
-    private ListView<ExamReportEntry> reportListView;
+    private ComboBox<Exam> examFilterComboBox;
+
+    @FXML
+    private TableView<ExamReportEntry> reportTableView;
+
+    @FXML
+    private TableColumn<ExamReportEntry, String> studentNameColumn;
+
+    @FXML
+    private TableColumn<ExamReportEntry, Integer> scoreColumn;
+
+    @FXML
+    private TableColumn<ExamReportEntry, String> gradeColumn;
+
+    @FXML
+    private TableColumn<ExamReportEntry, Double> percentageColumn;
 
     @FXML
     private Label summaryLabel;
@@ -38,22 +56,19 @@ public class ReportsController implements TeacherScreen {
 
     @FXML
     public void initialize() {
-        reportListView.setCellFactory(lv -> new ListCell<>() {
+        studentNameColumn.setCellValueFactory(new PropertyValueFactory<>("studentName"));
+        scoreColumn.setCellValueFactory(new PropertyValueFactory<>("marksObtained"));
+        gradeColumn.setCellValueFactory(new PropertyValueFactory<>("grade"));
+        percentageColumn.setCellValueFactory(new PropertyValueFactory<>("percentage"));
+        examFilterComboBox.setCellFactory(cb -> new javafx.scene.control.ListCell<>() {
             @Override
-            protected void updateItem(ExamReportEntry entry, boolean empty) {
-                super.updateItem(entry, empty);
-                if (empty || entry == null) {
-                    setText(null);
-                } else {
-                    setText(String.format("%s | %s: %d/%d (%.1f%%)",
-                            entry.getStudentName(),
-                            entry.getExamName(),
-                            entry.getMarksObtained(),
-                            entry.getTotalMarks(),
-                            entry.getPercentage()));
-                }
+            protected void updateItem(Exam exam, boolean empty) {
+                super.updateItem(exam, empty);
+                setText(empty || exam == null ? null : exam.getExamName());
             }
         });
+        examFilterComboBox.setButtonCell(examFilterComboBox.getCellFactory().call(null));
+        examFilterComboBox.setOnAction(e -> refresh());
         refreshButton.setOnAction(e -> refresh());
         backButton.setOnAction(e -> returnToDashboard());
     }
@@ -61,22 +76,41 @@ public class ReportsController implements TeacherScreen {
     @Override
     public void setTeacherContext(Teacher teacher, User user) {
         this.teacher = teacher;
-        refresh();
+        loadCoursesAndRefresh();
+    }
+
+    private void loadCoursesAndRefresh() {
+        BackgroundLoader.load(
+                () -> teacherService.getTeacherCourses(teacher.getTeacherId()),
+                exams -> {
+                    examFilterComboBox.setItems(FXCollections.observableArrayList(exams));
+                    if (!exams.isEmpty()) {
+                        examFilterComboBox.getSelectionModel().selectFirst();
+                    }
+                    refresh();
+                },
+                error -> statusLabel.setText("Failed to load courses: " + error.getMessage()));
     }
 
     private void refresh() {
+        Exam selectedExam = examFilterComboBox.getSelectionModel().getSelectedItem();
+        if (selectedExam == null) {
+            statusLabel.setText("Select an exam to view all student results.");
+            reportTableView.setItems(FXCollections.observableArrayList());
+            return;
+        }
         statusLabel.setText("Generating reports...");
         BackgroundLoader.load(
-                () -> teacherService.getSubmittedReports(teacher.getTeacherId()),
+                () -> teacherService.getSubmittedReportsByExam(teacher.getTeacherId(), selectedExam.getExamId()),
                 reports -> {
-                    reportListView.setItems(FXCollections.observableArrayList(reports));
+                    reportTableView.setItems(FXCollections.observableArrayList(reports));
                     if (reports.isEmpty()) {
-                        summaryLabel.setText("No submitted exams yet.");
+                        summaryLabel.setText("No submitted attempts for " + selectedExam.getExamName() + ".");
                         statusLabel.setText("");
                     } else {
                         double avg = reports.stream().mapToDouble(ExamReportEntry::getPercentage).average().orElse(0);
-                        summaryLabel.setText(String.format("Total submissions: %d | Average score: %.1f%%",
-                                reports.size(), avg));
+                        summaryLabel.setText(String.format("Exam: %s | Students: %d | Avg: %.1f%%",
+                                selectedExam.getExamName(), reports.size(), avg));
                         statusLabel.setText("Reports generated successfully.");
                     }
                 },

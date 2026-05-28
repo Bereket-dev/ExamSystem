@@ -23,14 +23,26 @@
                     <ComboBox fx:id="questionTypeCombo" promptText="Question type" maxWidth="Infinity" />
                     <HBox spacing="8">
                         <TextField fx:id="marksField" promptText="Marks *" HBox.hgrow="ALWAYS" />
-                        <TextField fx:id="sequenceField" promptText="Order" HBox.hgrow="ALWAYS" />
                     </HBox>
-                    <Label text="MCQ Options (1-4) / True=1 False=2 for T/F" styleClass="subsection-title" />
-                    <TextField fx:id="option1Field" promptText="Option 1" />
-                    <TextField fx:id="option2Field" promptText="Option 2" />
-                    <TextField fx:id="option3Field" promptText="Option 3" />
-                    <TextField fx:id="option4Field" promptText="Option 4" />
-                    <TextField fx:id="correctOptionField" promptText="Correct option number" />
+                    <Label text="Options" styleClass="subsection-title" />
+                    <VBox spacing="8">
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <RadioButton fx:id="option1Radio" />
+                            <TextField fx:id="option1Field" promptText="Option A" HBox.hgrow="ALWAYS" />
+                        </HBox>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <RadioButton fx:id="option2Radio" />
+                            <TextField fx:id="option2Field" promptText="Option B" HBox.hgrow="ALWAYS" />
+                        </HBox>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <RadioButton fx:id="option3Radio" />
+                            <TextField fx:id="option3Field" promptText="Option C" HBox.hgrow="ALWAYS" />
+                        </HBox>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <RadioButton fx:id="option4Radio" />
+                            <TextField fx:id="option4Field" promptText="Option D" HBox.hgrow="ALWAYS" />
+                        </HBox>
+                    </VBox>
                     <Label fx:id="statusLabel" styleClass="status-success" wrapText="true" />
                 </VBox>
             </items>
@@ -39,6 +51,8 @@
     <bottom>
         <HBox spacing="10" styleClass="content-area" alignment="CENTER_RIGHT">
             <Button fx:id="backButton" text="Back" styleClass="btn-neutral" />
+            <Button fx:id="updateQuestionButton" text="Update Question" styleClass="btn-warning" />
+            <Button fx:id="deleteQuestionButton" text="Delete Question" styleClass="btn-danger" />
             <Button fx:id="addQuestionButton" text="Add Question" styleClass="btn-secondary" />
         </HBox>
     </bottom>

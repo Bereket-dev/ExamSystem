@@ -6,8 +6,17 @@ import java.time.LocalDateTime;
  * Submitted exam result row for teacher reports.
  */
 public class ExamReportEntry {
+    private int examId;
     private String studentName;
     private String examName;
+    public int getExamId() {
+        return examId;
+    }
+
+    public void setExamId(int examId) {
+        this.examId = examId;
+    }
+
     private int marksObtained;
     private int totalMarks;
     private String submissionStatus;
@@ -66,5 +75,14 @@ public class ExamReportEntry {
             return 0;
         }
         return (marksObtained * 100.0) / totalMarks;
+    }
+
+    public String getGrade() {
+        double p = getPercentage();
+        if (p >= 90) return "A";
+        if (p >= 80) return "B";
+        if (p >= 70) return "C";
+        if (p >= 60) return "D";
+        return "F";
     }
 }

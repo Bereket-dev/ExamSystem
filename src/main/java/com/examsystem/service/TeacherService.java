@@ -56,6 +56,22 @@ public class TeacherService {
         return exam;
     }
 
+    public void updateExam(int teacherId, Exam exam) {
+        if (exam.getTeacherId() != teacherId) {
+            throw new IllegalArgumentException("You can only edit your own course exams.");
+        }
+        examRepository.update(exam);
+    }
+
+    public void deleteExam(int teacherId, int examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new IllegalArgumentException("Exam not found."));
+        if (exam.getTeacherId() != teacherId) {
+            throw new IllegalArgumentException("You can only delete your own course exams.");
+        }
+        examRepository.delete(examId);
+    }
+
     public void publishExam(int examId, boolean publish) {
         examRepository.setPublished(examId, publish);
     }
@@ -71,12 +87,39 @@ public class TeacherService {
         return question;
     }
 
+    public void updateQuestion(int teacherId, Question question, List<QuestionOption> options) {
+        Exam exam = examRepository.findById(question.getExamId())
+                .orElseThrow(() -> new IllegalArgumentException("Exam not found."));
+        if (exam.getTeacherId() != teacherId) {
+            throw new IllegalArgumentException("You can only edit questions in your own course exams.");
+        }
+        questionRepository.updateQuestion(question);
+        if (options != null) {
+            questionRepository.replaceOptions(question.getQuestionId(), options);
+        }
+    }
+
+    public void deleteQuestion(int teacherId, int questionId, int examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new IllegalArgumentException("Exam not found."));
+        if (exam.getTeacherId() != teacherId) {
+            throw new IllegalArgumentException("You can only delete questions in your own course exams.");
+        }
+        questionRepository.deleteQuestion(questionId);
+        exam.setTotalQuestions(questionRepository.countByExamId(examId));
+        examRepository.update(exam);
+    }
+
     public void addOption(QuestionOption option) {
         questionRepository.saveOption(option);
     }
 
     public List<Question> getQuestions(int examId) {
         return questionRepository.findByExamId(examId);
+    }
+
+    public List<QuestionOption> getOptions(int questionId) {
+        return questionRepository.findOptionsByQuestionId(questionId);
     }
 
     public List<Student> getAllStudents() {
@@ -93,11 +136,23 @@ public class TeacherService {
         studentRepository.assignExamToStudent(examId, studentId);
     }
 
+    public boolean isStudentAssignedToExam(int studentId, int examId) {
+        return studentRepository.findAssignmentId(studentId, examId).isPresent();
+    }
+
     public List<ExamMonitoringEntry> getActiveMonitoring(int teacherId) {
         return attemptRepository.findActiveAttemptsByTeacherId(teacherId);
     }
 
     public List<ExamReportEntry> getSubmittedReports(int teacherId) {
         return attemptRepository.findSubmittedReportsByTeacherId(teacherId);
+    }
+
+    public List<ExamReportEntry> getSubmittedReportsByExam(int teacherId, int examId) {
+        return attemptRepository.findSubmittedReportsByTeacherAndExam(teacherId, examId);
+    }
+
+    public List<Exam> getTeacherCourses(int teacherId) {
+        return examRepository.findByTeacherId(teacherId);
     }
 }

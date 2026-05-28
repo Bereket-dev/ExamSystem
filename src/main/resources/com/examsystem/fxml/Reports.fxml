@@ -14,7 +14,15 @@
     <center>
         <VBox spacing="12" styleClass="content-area">
             <Label fx:id="summaryLabel" styleClass="section-title" />
-            <ListView fx:id="reportListView" VBox.vgrow="ALWAYS" prefHeight="420" />
+            <ComboBox fx:id="examFilterComboBox" promptText="Select your course/exam" />
+            <TableView fx:id="reportTableView" VBox.vgrow="ALWAYS" prefHeight="420">
+                <columns>
+                    <TableColumn fx:id="studentNameColumn" text="Student Name" prefWidth="220" />
+                    <TableColumn fx:id="scoreColumn" text="Exam Score" prefWidth="120" />
+                    <TableColumn fx:id="gradeColumn" text="Grade" prefWidth="100" />
+                    <TableColumn fx:id="percentageColumn" text="Percentage" prefWidth="120" />
+                </columns>
+            </TableView>
             <Label fx:id="statusLabel" styleClass="status-success" />
         </VBox>
     </center>

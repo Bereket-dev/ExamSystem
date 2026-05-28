@@ -15,10 +15,16 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import com.examsystem.util.UiManager;
+import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextInputDialog;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.util.List;
@@ -41,12 +47,6 @@ public class TeacherDashboardController {
     private Button createExamButton;
 
     @FXML
-    private Button addQuestionsButton;
-
-    @FXML
-    private Button assignStudentsButton;
-
-    @FXML
     private Button monitoringButton;
 
     @FXML
@@ -64,21 +64,57 @@ public class TeacherDashboardController {
     public void initialize() {
         examListView.setItems(teacherExams);
         examListView.setCellFactory(lv -> new ListCell<>() {
+            private final HBox row = new HBox(10);
+            private final Label examLabel = new Label();
+            private final HBox actionBox = new HBox(8);
+            private final Button editButton = new Button("Edit Exam");
+            private final Button deleteButton = new Button("Delete Exam");
+            private final Button addQuestionButton = new Button("Add Question");
+            private final Button assignButton = new Button("Assign Students");
+            private final Region spacer = new Region();
+
+            {
+                addQuestionButton.getStyleClass().add("btn-secondary");
+                assignButton.getStyleClass().add("btn-purple");
+                editButton.getStyleClass().add("btn-secondary");
+                deleteButton.getStyleClass().add("btn-danger");
+                actionBox.getChildren().addAll(addQuestionButton, assignButton, editButton, deleteButton);
+                actionBox.setVisible(false);
+                actionBox.setManaged(false);
+                row.setAlignment(Pos.CENTER_LEFT);
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                row.getChildren().addAll(examLabel, spacer, actionBox);
+                editButton.setOnAction(e -> handleEditExam(getItem()));
+                deleteButton.setOnAction(e -> handleDeleteExam(getItem()));
+                addQuestionButton.setOnAction(e -> openQuestionManager(getItem()));
+                assignButton.setOnAction(e -> openAssignStudents(getItem()));
+            }
+
             @Override
             protected void updateItem(Exam exam, boolean empty) {
                 super.updateItem(exam, empty);
                 if (empty || exam == null) {
                     setText(null);
+                    setGraphic(null);
                 } else {
                     String published = exam.isPublished() ? "Published" : "Draft";
-                    setText(exam.getExamName() + " [" + exam.getSubject() + "] - " + published);
+                    examLabel.setText(exam.getExamName() + " [" + exam.getSubject() + "] - " + published);
+                    setText(null);
+                    setGraphic(row);
+                    actionBox.setVisible(isSelected());
+                    actionBox.setManaged(isSelected());
                 }
+            }
+
+            @Override
+            public void updateSelected(boolean selected) {
+                super.updateSelected(selected);
+                actionBox.setVisible(selected);
+                actionBox.setManaged(selected);
             }
         });
 
         createExamButton.setOnAction(e -> openScreen("/com/examsystem/fxml/CreateExam.fxml", "Create Exam", CreateExamController.class));
-        addQuestionsButton.setOnAction(e -> openQuestionManager());
-        assignStudentsButton.setOnAction(e -> openScreen("/com/examsystem/fxml/AssignStudents.fxml", "Assign Students", AssignStudentsController.class));
         monitoringButton.setOnAction(e -> openScreen("/com/examsystem/fxml/Monitoring.fxml", "Live Monitoring", MonitoringController.class));
         reportsButton.setOnAction(e -> openScreen("/com/examsystem/fxml/Reports.fxml", "Reports", ReportsController.class));
         logoutButton.setOnAction(e -> handleLogout());
@@ -147,8 +183,7 @@ public class TeacherDashboardController {
         return examListView.getSelectionModel().getSelectedItem();
     }
 
-    private void openQuestionManager() {
-        Exam selected = examListView.getSelectionModel().getSelectedItem();
+    private void openQuestionManager(Exam selected) {
         if (selected == null) {
             setStatus("Select an exam first to manage questions.");
             return;
@@ -159,10 +194,78 @@ public class TeacherDashboardController {
             QuestionManagerController controller = loader.getController();
             controller.setExam(selected);
 
-            Stage stage = (Stage) addQuestionsButton.getScene().getWindow();
+            Stage stage = (Stage) createExamButton.getScene().getWindow();
             UiManager.navigateToApp(stage, root, "Question Manager - " + selected.getExamName());
         } catch (Exception e) {
             setStatus("Unable to open question manager: " + e.getMessage());
+        }
+    }
+
+    private void openAssignStudents(Exam selected) {
+        if (selected == null) {
+            setStatus("Select an exam first to assign students.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/AssignStudents.fxml"));
+            Parent root = loader.load();
+            AssignStudentsController controller = loader.getController();
+            controller.setTeacherContext(currentTeacher, currentUser);
+            controller.setExam(selected);
+
+            Stage stage = (Stage) createExamButton.getScene().getWindow();
+            UiManager.navigateToApp(stage, root, "Assign Students - " + selected.getExamName());
+        } catch (Exception e) {
+            setStatus("Unable to open assignment screen: " + e.getMessage());
+        }
+    }
+
+    private void handleEditExam(Exam selected) {
+        if (selected == null) {
+            setStatus("Select an exam to edit.");
+            return;
+        }
+        TextInputDialog nameDialog = new TextInputDialog(selected.getExamName());
+        nameDialog.setHeaderText("Edit exam title");
+        nameDialog.setContentText("Title:");
+        var nameResult = nameDialog.showAndWait();
+        if (nameResult.isEmpty()) return;
+
+        TextInputDialog topicDialog = new TextInputDialog(selected.getSubject());
+        topicDialog.setHeaderText("Edit exam topic/subject");
+        topicDialog.setContentText("Subject:");
+        var topicResult = topicDialog.showAndWait();
+        if (topicResult.isEmpty()) return;
+
+        selected.setExamName(nameResult.get().trim());
+        selected.setSubject(topicResult.get().trim());
+        try {
+            teacherService.updateExam(currentTeacher.getTeacherId(), selected);
+            setStatus("Exam updated.");
+            loadDashboard();
+        } catch (Exception e) {
+            setStatus("Update failed: " + e.getMessage());
+        }
+    }
+
+    private void handleDeleteExam(Exam selected) {
+        if (selected == null) {
+            setStatus("Select an exam to delete.");
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setHeaderText("Delete exam?");
+        confirm.setContentText("This removes exam '" + selected.getExamName() + "' and related questions/attempts.");
+        var result = confirm.showAndWait();
+        if (result.isEmpty() || result.get().getButtonData().isCancelButton()) {
+            return;
+        }
+        try {
+            teacherService.deleteExam(currentTeacher.getTeacherId(), selected.getExamId());
+            setStatus("Exam deleted.");
+            loadDashboard();
+        } catch (Exception e) {
+            setStatus("Delete failed: " + e.getMessage());
         }
     }
 

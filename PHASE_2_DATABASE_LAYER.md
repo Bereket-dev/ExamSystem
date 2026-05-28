@@ -76,7 +76,6 @@ SELECT COUNT(*) FROM users
 #### Question.java
 - Question representation
 - Enums: QuestionType (MCQ, TRUE_FALSE, SHORT_ANSWER)
-- Difficulty levels (EASY, MEDIUM, HARD)
 - Mark allocation per question
 
 #### Student.java

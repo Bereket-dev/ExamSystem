@@ -35,7 +35,7 @@ public class DatabaseConnection {
     }
 
     private static String getDbPassword() {
-        return ConfigManager.getProperty("db.password", "1234");
+        return ConfigManager.getProperty("db.password", "password");
     }
 
     private static HikariDataSource getDataSource() throws SQLException {

@@ -27,7 +27,6 @@
     <bottom>
         <HBox spacing="12" styleClass="content-area" alignment="CENTER_RIGHT">
             <Button fx:id="previousButton" text="Previous" styleClass="btn-neutral" />
-            <Button fx:id="saveButton" text="Save" styleClass="btn-secondary" />
             <Button fx:id="nextButton" text="Next" styleClass="btn-neutral" />
             <Button fx:id="submitButton" text="Submit Exam" styleClass="btn-primary" />
         </HBox>

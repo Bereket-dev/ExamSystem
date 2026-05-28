@@ -156,6 +156,9 @@ public class StudentRepositoryImpl implements StudentRepository {
 
     @Override
     public void assignExamToStudent(int examId, int studentId) {
+        if (findAssignmentId(studentId, examId).isPresent()) {
+            return; // already assigned, ignore duplicate assignment
+        }
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(INSERT_ASSIGNMENT)) {
             stmt.setInt(1, examId);

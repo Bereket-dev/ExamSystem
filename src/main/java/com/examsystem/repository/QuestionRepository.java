@@ -14,5 +14,11 @@ public interface QuestionRepository {
 
     void saveOption(QuestionOption option);
 
+    void updateQuestion(Question question);
+
+    void deleteQuestion(int questionId);
+
+    void replaceOptions(int questionId, List<QuestionOption> options);
+
     int countByExamId(int examId);
 }

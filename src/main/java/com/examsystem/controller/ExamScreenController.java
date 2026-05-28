@@ -60,9 +60,6 @@ public class ExamScreenController {
     private Button nextButton;
 
     @FXML
-    private Button saveButton;
-
-    @FXML
     private Button submitButton;
 
     private final StudentService studentService = new StudentService();
@@ -72,6 +69,7 @@ public class ExamScreenController {
     private int attemptId;
     private List<Question> questions = new ArrayList<>();
     private Map<Integer, StudentAnswer> savedAnswers = new HashMap<>();
+    private final Map<Integer, List<QuestionOption>> randomizedOptions = new HashMap<>();
     private int currentIndex = 0;
     private ExamTimerThread examTimerThread;
     private AutoSaveThread autoSaveThread;
@@ -80,7 +78,6 @@ public class ExamScreenController {
     public void initialize() {
         previousButton.setOnAction(event -> navigateQuestion(-1));
         nextButton.setOnAction(event -> navigateQuestion(1));
-        saveButton.setOnAction(event -> saveCurrentAnswer());
         submitButton.setOnAction(event -> submitExam());
     }
 
@@ -98,7 +95,8 @@ public class ExamScreenController {
             return;
         }
 
-        this.questions = studentService.getQuestions(exam.getExamId());
+        this.questions = studentService.getRandomizedQuestions(exam.getExamId());
+        randomizedOptions.clear();
         studentService.getAnswersByAttempt(attemptId)
                 .forEach(answer -> savedAnswers.put(answer.getQuestionId(), answer));
 
@@ -167,7 +165,7 @@ public class ExamScreenController {
         } else {
             shortAnswerField.setVisible(false);
             shortAnswerField.setManaged(false);
-            List<QuestionOption> options = studentService.getOptions(question.getQuestionId());
+            List<QuestionOption> options = randomizedOptions.computeIfAbsent(question.getQuestionId(), studentService::getRandomizedOptions);
             for (QuestionOption option : options) {
                 RadioButton radioButton = new RadioButton(option.getOptionText());
                 radioButton.setToggleGroup(optionGroup);
@@ -309,7 +307,6 @@ public class ExamScreenController {
     private void disableExamControls() {
         previousButton.setDisable(true);
         nextButton.setDisable(true);
-        saveButton.setDisable(true);
         submitButton.setDisable(true);
     }
 }
