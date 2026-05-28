@@ -454,3 +454,18 @@
     -fx-font-size: 12px;
     -fx-text-fill: #d35400;
 }
+
+.server-mode-banner {
+    -fx-background-color: #e8f8f0;
+    -fx-background-radius: 8;
+    -fx-border-color: #27ae60;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 14;
+}
+
+.server-mode-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e8449;
+}

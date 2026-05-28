@@ -8,46 +8,78 @@
     xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.examsystem.controller.ConnectionSetupController">
     <top>
-        <VBox styleClass="connection-setup-header" spacing="6">
+        <VBox spacing="8">
             <padding>
-                <Insets top="24" right="32" bottom="16" left="32" />
+                <Insets top="20" right="28" bottom="12" left="28" />
             </padding>
-            <Label text="Server Connection Setup" styleClass="connection-setup-title" />
-            <Label fx:id="welcomeLabel" text="Welcome" styleClass="connection-setup-subtitle" wrapText="true" />
-            <Label text="Configure how this device connects to the central admin server before continuing."
-                styleClass="connection-setup-hint" wrapText="true" />
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label fx:id="pageTitleLabel" text="Server Connection Setup"
+                        styleClass="connection-setup-title" />
+                    <Label fx:id="welcomeLabel" text="Welcome" styleClass="connection-setup-subtitle"
+                        wrapText="true" />
+                    <Label fx:id="hintLabel" text="" styleClass="connection-setup-hint" wrapText="true" />
+                </VBox>
+                <Button fx:id="logoutButton" text="Logout" styleClass="btn-danger" />
+            </HBox>
         </VBox>
     </top>
     <center>
-        <VBox spacing="18" styleClass="connection-setup-card" maxWidth="520">
+        <VBox alignment="TOP_CENTER" spacing="16">
             <padding>
                 <Insets top="8" right="28" bottom="8" left="28" />
             </padding>
-            <VBox spacing="6">
-                <Label text="Admin Server IP Address" styleClass="field-label" />
-                <TextField fx:id="serverIpField" promptText="e.g. 192.168.1.10 or localhost" />
-            </VBox>
-            <VBox spacing="6">
-                <Label text="RMI Port" styleClass="field-label" />
-                <TextField fx:id="rmiPortField" promptText="1099" />
-            </VBox>
-            <HBox spacing="12" alignment="CENTER_LEFT">
-                <Button fx:id="testConnectionButton" text="Test Connection" styleClass="btn-secondary" />
-                <Region HBox.hgrow="ALWAYS" />
-                <HBox alignment="CENTER_LEFT" spacing="8">
-                    <Region fx:id="statusDot" styleClass="connection-dot connection-dot-idle" minWidth="12"
-                        minHeight="12" maxWidth="12" maxHeight="12" />
-                    <Label fx:id="connectionStatusLabel" text="Not tested yet" styleClass="connection-status-text"
-                        wrapText="true" />
+
+            <!-- Admin: central server host (no client IP setup) -->
+            <VBox fx:id="adminServerPanel" spacing="16" styleClass="connection-setup-card" maxWidth="520"
+                visible="false" managed="false">
+                <HBox alignment="CENTER_LEFT" spacing="12" styleClass="server-mode-banner">
+                    <Region fx:id="adminStatusDot" styleClass="connection-dot connection-dot-success"
+                        minWidth="14" minHeight="14" maxWidth="14" maxHeight="14" />
+                    <VBox spacing="4">
+                        <Label text="Server Mode ON" styleClass="server-mode-title" />
+                        <Label text="This device is the central RMI server and MySQL host."
+                            wrapText="true" styleClass="connection-setup-hint" />
+                    </VBox>
                 </HBox>
-            </HBox>
-            <Separator />
-            <HBox spacing="12" alignment="CENTER">
-                <Button fx:id="saveContinueButton" text="Save &amp; Continue" styleClass="btn-primary"
-                    defaultButton="true" />
-                <Button fx:id="offlineButton" text="Continue Offline" styleClass="btn-neutral" />
-            </HBox>
-            <Label fx:id="messageLabel" wrapText="true" styleClass="connection-message" />
+                <Label fx:id="adminPortLabel" text="RMI registry port: 1099" styleClass="field-label" />
+                <HBox spacing="12" alignment="CENTER">
+                    <Button fx:id="adminContinueButton" text="Start Server &amp; Continue"
+                        styleClass="btn-primary" defaultButton="true" />
+                    <Button fx:id="adminOfflineButton" text="Continue Offline" styleClass="btn-neutral" />
+                </HBox>
+            </VBox>
+
+            <!-- Teacher / Student: connect to admin server -->
+            <VBox fx:id="clientConnectionPanel" spacing="16" styleClass="connection-setup-card"
+                maxWidth="520" visible="false" managed="false">
+                <VBox spacing="6">
+                    <Label text="Admin Server IP Address" styleClass="field-label" />
+                    <TextField fx:id="serverIpField" promptText="e.g. 192.168.1.10" />
+                </VBox>
+                <VBox spacing="6">
+                    <Label text="RMI Port" styleClass="field-label" />
+                    <TextField fx:id="rmiPortField" promptText="1099" />
+                </VBox>
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <Button fx:id="testConnectionButton" text="Test Connection" styleClass="btn-secondary" />
+                    <Region HBox.hgrow="ALWAYS" />
+                    <HBox alignment="CENTER_LEFT" spacing="8">
+                        <Region fx:id="statusDot" styleClass="connection-dot connection-dot-idle"
+                            minWidth="12" minHeight="12" maxWidth="12" maxHeight="12" />
+                        <Label fx:id="connectionStatusLabel" text="Not tested yet"
+                            styleClass="connection-status-text" wrapText="true" />
+                    </HBox>
+                </HBox>
+                <Separator />
+                <HBox spacing="12" alignment="CENTER">
+                    <Button fx:id="saveContinueButton" text="Save &amp; Continue" styleClass="btn-primary"
+                        defaultButton="true" />
+                    <Button fx:id="clientOfflineButton" text="Continue Offline" styleClass="btn-neutral" />
+                </HBox>
+            </VBox>
+
+            <Label fx:id="messageLabel" wrapText="true" styleClass="connection-message" maxWidth="520" />
         </VBox>
     </center>
 </BorderPane>

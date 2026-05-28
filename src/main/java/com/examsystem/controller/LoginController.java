@@ -10,9 +10,6 @@ import org.slf4j.LoggerFactory;
 import com.examsystem.model.User;
 import com.examsystem.repository.UserRepository;
 import com.examsystem.repository.UserRepositoryImpl;
-import com.examsystem.connection.ConnectionProfile;
-import com.examsystem.connection.ConnectionSettingsStore;
-import com.examsystem.connection.ConnectionSetupService;
 import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.FormValidator;
 import com.examsystem.util.Session;
@@ -124,15 +121,8 @@ public class LoginController {
     private void completeLogin(User user, String username, String password) {
         try {
             Session.getInstance().login(user);
-            ConnectionProfile saved = ConnectionSettingsStore.load();
-            if (saved.isValidForAutoConnect()
-                    && ConnectionSetupService.tryApplySavedProfile(saved, user)) {
-                logger.info("Using saved connection profile ({} mode)",
-                        saved.isOfflineMode() ? "offline" : "online");
-                navigateByRole(user.getRole());
-            } else {
-                navigateToConnectionSetup(user);
-            }
+            // Always show connection setup after login; saved values are pre-filled on that screen.
+            navigateToConnectionSetup(user);
         } catch (Exception e) {
             showError("Error: " + e.getMessage());
             passwordField.clear();
@@ -150,7 +140,8 @@ public class LoginController {
             controller.setUser(user);
 
             Stage stage = (Stage) loginButton.getScene().getWindow();
-            UiManager.navigateToApp(stage, root, "Server Connection Setup - ExamSystem");
+            UiManager.navigate(stage, root, UiManager.APP_WIDTH, UiManager.APP_HEIGHT,
+                    "Server Connection Setup - ExamSystem");
         } catch (Exception e) {
             logger.error("Failed to open connection setup", e);
             showError("Could not open connection setup: " + e.getMessage());
@@ -192,51 +183,66 @@ public class LoginController {
     }
 
     private void navigateToTeacherDashboard() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/TeacherDashboard.fxml"));
-            Parent root = loader.load();
-            TeacherDashboardController controller = loader.getController();
-            controller.setUser(Session.getInstance().getCurrentUser());
-
-            Stage stage = (Stage) loginButton.getScene().getWindow();
-            NavigationHelper.openAppScreen(stage, root, "Teacher Dashboard - ExamSystem");
-            SyncProgressDialog.show(stage, null);
-        } catch (Exception e) {
-            logger.error("Error navigating to teacher dashboard", e);
-            showError("Unable to open teacher dashboard: " + e.getMessage());
-        }
+        openRoleDashboard(
+                "/com/examsystem/fxml/TeacherDashboard.fxml",
+                "Teacher Dashboard - ExamSystem",
+                "teacher dashboard",
+                root -> ((TeacherDashboardController) root).setUser(Session.getInstance().getCurrentUser()));
     }
 
     private void navigateToStudentDashboard() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/StudentDashboard.fxml"));
-            Parent root = loader.load();
-            StudentDashboardController controller = loader.getController();
-            controller.setUser(Session.getInstance().getCurrentUser());
-
-            Stage stage = (Stage) loginButton.getScene().getWindow();
-            NavigationHelper.openAppScreen(stage, root, "Student Dashboard - ExamSystem");
-            SyncProgressDialog.show(stage, null);
-        } catch (Exception e) {
-            logger.error("Error navigating to student dashboard", e);
-            showError("Unable to open student dashboard: " + e.getMessage());
-        }
+        openRoleDashboard(
+                "/com/examsystem/fxml/StudentDashboard.fxml",
+                "Student Dashboard - ExamSystem",
+                "student dashboard",
+                root -> ((StudentDashboardController) root).setUser(Session.getInstance().getCurrentUser()));
     }
 
     private void navigateToAdminPanel() {
+        openRoleDashboard(
+                "/com/examsystem/fxml/AdminPanel.fxml",
+                "Admin Panel - ExamSystem",
+                "admin panel",
+                root -> ((AdminPanelController) root).setCurrentAdmin(Session.getInstance().getCurrentUser()));
+    }
+
+    private void openRoleDashboard(String fxmlPath, String title, String screenName,
+            java.util.function.Consumer<Object> controllerSetup) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/AdminPanel.fxml"));
+            var fxmlUrl = getClass().getResource(fxmlPath);
+            if (fxmlUrl == null) {
+                showError("Screen resource not found: " + fxmlPath);
+                return;
+            }
+            FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
-            AdminPanelController controller = loader.getController();
-            controller.setCurrentAdmin(Session.getInstance().getCurrentUser());
+            controllerSetup.accept(loader.getController());
 
             Stage stage = (Stage) loginButton.getScene().getWindow();
-            NavigationHelper.openAppScreen(stage, root, "Admin Panel - ExamSystem");
-            SyncProgressDialog.show(stage, null);
+            NavigationHelper.openAppScreen(stage, root, title);
+            try {
+                SyncProgressDialog.show(stage, null);
+            } catch (Exception syncUi) {
+                logger.debug("Sync progress dialog skipped: {}", syncUi.getMessage());
+            }
         } catch (Exception e) {
-            logger.error("Error navigating to admin panel", e);
-            showError("Unable to open admin panel: " + e.getMessage());
+            logger.error("Error navigating to {}", screenName, e);
+            showError("Unable to open " + screenName + ". " + friendlyNavigationError(e));
         }
+    }
+
+    private static String friendlyNavigationError(Throwable e) {
+        if (e == null) {
+            return "Please try again.";
+        }
+        String msg = e.getMessage();
+        if (msg == null || msg.isBlank()) {
+            msg = e.getClass().getSimpleName();
+        }
+        if (msg.contains("Location is required") || msg.contains("resource not found")) {
+            return "A required screen file is missing from the build. Run: mvnd clean compile";
+        }
+        return msg;
     }
 
     /**

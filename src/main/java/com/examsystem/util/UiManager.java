@@ -28,7 +28,11 @@ public final class UiManager {
     }
 
     public static void applyTheme(Parent root) {
-        String css = UiManager.class.getResource(THEME_CSS).toExternalForm();
+        var cssUrl = UiManager.class.getResource(THEME_CSS);
+        if (cssUrl == null) {
+            return;
+        }
+        String css = cssUrl.toExternalForm();
         if (!root.getStylesheets().contains(css)) {
             root.getStylesheets().add(css);
         }
