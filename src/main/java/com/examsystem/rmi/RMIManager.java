@@ -112,16 +112,38 @@ public class RMIManager {
 
     /**
      * Notifies the admin server that this client completed online connection setup.
+     * CRITICAL: Uses the already-connected client if available; does NOT start a fresh connection.
      */
     public ClientPresenceResult registerClientPresence(String username, String role) {
+        logger.info("[RMI-MANAGER] registerClientPresence called: username={}, role={}", username, role);
         try {
-            if (!isClientConnected() && !connectClient()) {
-                return ClientPresenceResult.fail("Not connected to admin server");
+            if (!isClientConnected()) {
+                logger.warn(
+                        "[RMI-MANAGER] RMI client not currently connected. Attempting connection to register presence...");
+                if (!connectClient()) {
+                    String msg = String.format(
+                            "Cannot connect to RMI server at %s:%d. Admin server may not be running.",
+                            rmiClient.getHost(), rmiClient.getPort());
+                    logger.error("[RMI-MANAGER] Connection failed: {}", msg);
+                    return ClientPresenceResult.fail(msg);
+                }
+                logger.info("[RMI-MANAGER] Successfully connected to RMI server");
             }
-            return rmiClient.registerClientPresence(username, role);
+            logger.info("[RMI-MANAGER] Calling remote registerClientPresence on server");
+            ClientPresenceResult result = rmiClient.registerClientPresence(username, role);
+            logger.info("[RMI-MANAGER] Remote call returned: success={}, message={}", result.isSuccess(), result.getMessage());
+            if (result.isSuccess()) {
+                logger.info("[RMI-MANAGER] Client presence registered successfully: {}", result.getMessage());
+            } else {
+                logger.warn("[RMI-MANAGER] RMI server rejected presence registration: {}", result.getMessage());
+            }
+            return result;
         } catch (RemoteException e) {
-            logger.warn("RMI client presence failed: {}", e.getMessage());
-            return ClientPresenceResult.fail(e.getMessage());
+            String msg = String.format(
+                    "RMI error during presence registration: %s (server may be on a different network)",
+                    e.getMessage());
+            logger.error("[RMI-MANAGER] RemoteException caught: {}", msg, e);
+            return ClientPresenceResult.fail(msg);
         }
     }
 

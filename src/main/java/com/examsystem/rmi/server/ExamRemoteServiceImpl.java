@@ -66,24 +66,34 @@ public class ExamRemoteServiceImpl extends UnicastRemoteObject implements ExamRe
 
     @Override
     public ClientPresenceResult registerClientPresence(String username, String role) {
+        logger.info("[SERVER-PRESENCE] Received presence registration: username={}, role={}", username, role);
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
-            return ClientPresenceResult.fail("Unknown user: " + username);
+            String msg = "Unknown user: " + username;
+            logger.warn("[SERVER-PRESENCE] Registration failed: {}", msg);
+            return ClientPresenceResult.fail(msg);
         }
         User user = userOpt.get();
         if (!user.isActive()) {
-            return ClientPresenceResult.fail("User account is inactive");
+            String msg = "User account is inactive";
+            logger.warn("[SERVER-PRESENCE] Registration failed: {}", msg);
+            return ClientPresenceResult.fail(msg);
         }
         if (user.getRole() == User.UserRole.ADMIN) {
-            return ClientPresenceResult.fail("Admin accounts do not register as clients");
+            String msg = "Admin accounts do not register as clients";
+            logger.warn("[SERVER-PRESENCE] Registration failed: {}", msg);
+            return ClientPresenceResult.fail(msg);
         }
         String roleNorm = role == null ? "" : role.trim().toUpperCase();
         if (!roleNorm.isEmpty() && !user.getRole().name().equalsIgnoreCase(roleNorm)) {
-            return ClientPresenceResult.fail("Role mismatch for user " + username);
+            String msg = "Role mismatch for user " + username;
+            logger.warn("[SERVER-PRESENCE] Registration failed: {}", msg);
+            return ClientPresenceResult.fail(msg);
         }
+        logger.debug("[SERVER-PRESENCE] All validation passed, registering in ClientSessionRegistry");
         ClientConnectionEvent event = ClientSessionRegistry.getInstance().registerClientConnection(
                 user.getUsername(), user.getFullName(), user.getRole().name());
-        logger.info("Client presence registered: {} — {}", username, event.message());
+        logger.info("[SERVER-PRESENCE] Client presence registered successfully: {} — {}", username, event.message());
         return ClientPresenceResult.ok(event.message());
     }
 
