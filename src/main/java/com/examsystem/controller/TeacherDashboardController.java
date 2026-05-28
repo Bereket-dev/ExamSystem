@@ -225,26 +225,17 @@ public class TeacherDashboardController {
             setStatus("Select an exam to edit.");
             return;
         }
-        TextInputDialog nameDialog = new TextInputDialog(selected.getExamName());
-        nameDialog.setHeaderText("Edit exam title");
-        nameDialog.setContentText("Title:");
-        var nameResult = nameDialog.showAndWait();
-        if (nameResult.isEmpty()) return;
-
-        TextInputDialog topicDialog = new TextInputDialog(selected.getSubject());
-        topicDialog.setHeaderText("Edit exam topic/subject");
-        topicDialog.setContentText("Subject:");
-        var topicResult = topicDialog.showAndWait();
-        if (topicResult.isEmpty()) return;
-
-        selected.setExamName(nameResult.get().trim());
-        selected.setSubject(topicResult.get().trim());
         try {
-            teacherService.updateExam(currentTeacher.getTeacherId(), selected);
-            setStatus("Exam updated.");
-            loadDashboard();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/CreateExam.fxml"));
+            Parent root = loader.load();
+            CreateExamController controller = loader.getController();
+            controller.setTeacherContext(currentTeacher, currentUser);
+            controller.setExam(selected);
+
+            Stage stage = (Stage) createExamButton.getScene().getWindow();
+            UiManager.navigateToApp(stage, root, "Edit Exam - " + selected.getExamName());
         } catch (Exception e) {
-            setStatus("Update failed: " + e.getMessage());
+            setStatus("Unable to open edit form: " + e.getMessage());
         }
     }
 

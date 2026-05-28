@@ -18,6 +18,8 @@ public interface StudentRepository {
 
     List<Student> findAll();
 
+    List<Student> findByDepartmentAndSemester(String department, int semester);
+
     Optional<Integer> findAssignmentId(int studentId, int examId);
 
     boolean isAssignmentAttempted(int assignmentId);

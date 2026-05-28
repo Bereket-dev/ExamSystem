@@ -6,9 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -16,12 +13,12 @@ import java.util.Optional;
 public class ExamRepositoryImpl implements ExamRepository {
     private static final Logger logger = LoggerFactory.getLogger(ExamRepositoryImpl.class);
 
-    private static final String INSERT_EXAM = "INSERT INTO exams (teacher_id, exam_name, description, subject, duration_minutes, total_questions, total_marks, passing_marks, exam_date, exam_time, is_published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_EXAM = "INSERT INTO exams (teacher_id, exam_name, description, subject, course_id, duration_minutes, total_questions, total_marks, passing_marks, exam_date, exam_time, is_published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String SELECT_BY_ID = "SELECT * FROM exams WHERE exam_id = ?";
     private static final String SELECT_ALL = "SELECT * FROM exams ORDER BY exam_id";
     private static final String SELECT_BY_TEACHER = "SELECT * FROM exams WHERE teacher_id = ? ORDER BY exam_date";
     private static final String SELECT_PUBLISHED = "SELECT * FROM exams WHERE is_published = TRUE ORDER BY exam_date";
-    private static final String UPDATE_EXAM = "UPDATE exams SET teacher_id = ?, exam_name = ?, description = ?, subject = ?, duration_minutes = ?, total_questions = ?, total_marks = ?, passing_marks = ?, exam_date = ?, exam_time = ?, is_published = ? WHERE exam_id = ?";
+    private static final String UPDATE_EXAM = "UPDATE exams SET teacher_id = ?, exam_name = ?, description = ?, subject = ?, course_id = ?, duration_minutes = ?, total_questions = ?, total_marks = ?, passing_marks = ?, exam_date = ?, exam_time = ?, is_published = ? WHERE exam_id = ?";
     private static final String DELETE_EXAM = "DELETE FROM exams WHERE exam_id = ?";
     private static final String SET_PUBLISHED = "UPDATE exams SET is_published = ? WHERE exam_id = ?";
     private static final String COUNT_ALL = "SELECT COUNT(*) as count FROM exams";
@@ -35,13 +32,14 @@ public class ExamRepositoryImpl implements ExamRepository {
             stmt.setString(2, exam.getExamName());
             stmt.setString(3, exam.getDescription());
             stmt.setString(4, exam.getSubject());
-            stmt.setInt(5, exam.getDurationMinutes());
-            stmt.setInt(6, exam.getTotalQuestions());
-            stmt.setInt(7, exam.getTotalMarks());
-            stmt.setInt(8, exam.getPassingMarks());
-            stmt.setDate(9, exam.getExamDate() == null ? null : Date.valueOf(exam.getExamDate()));
-            stmt.setTime(10, exam.getExamTime() == null ? null : Time.valueOf(exam.getExamTime()));
-            stmt.setBoolean(11, exam.isPublished());
+            stmt.setInt(5, exam.getCourseId());
+            stmt.setInt(6, exam.getDurationMinutes());
+            stmt.setInt(7, exam.getTotalQuestions());
+            stmt.setInt(8, exam.getTotalMarks());
+            stmt.setInt(9, exam.getPassingMarks());
+            stmt.setDate(10, exam.getExamDate() == null ? null : Date.valueOf(exam.getExamDate()));
+            stmt.setTime(11, exam.getExamTime() == null ? null : Time.valueOf(exam.getExamTime()));
+            stmt.setBoolean(12, exam.isPublished());
 
             int affected = stmt.executeUpdate();
             if (affected > 0) {
@@ -130,14 +128,15 @@ public class ExamRepositoryImpl implements ExamRepository {
             stmt.setString(2, exam.getExamName());
             stmt.setString(3, exam.getDescription());
             stmt.setString(4, exam.getSubject());
-            stmt.setInt(5, exam.getDurationMinutes());
-            stmt.setInt(6, exam.getTotalQuestions());
-            stmt.setInt(7, exam.getTotalMarks());
-            stmt.setInt(8, exam.getPassingMarks());
-            stmt.setDate(9, exam.getExamDate() == null ? null : Date.valueOf(exam.getExamDate()));
-            stmt.setTime(10, exam.getExamTime() == null ? null : Time.valueOf(exam.getExamTime()));
-            stmt.setBoolean(11, exam.isPublished());
-            stmt.setInt(12, exam.getExamId());
+            stmt.setInt(5, exam.getCourseId());
+            stmt.setInt(6, exam.getDurationMinutes());
+            stmt.setInt(7, exam.getTotalQuestions());
+            stmt.setInt(8, exam.getTotalMarks());
+            stmt.setInt(9, exam.getPassingMarks());
+            stmt.setDate(10, exam.getExamDate() == null ? null : Date.valueOf(exam.getExamDate()));
+            stmt.setTime(11, exam.getExamTime() == null ? null : Time.valueOf(exam.getExamTime()));
+            stmt.setBoolean(12, exam.isPublished());
+            stmt.setInt(13, exam.getExamId());
 
             stmt.executeUpdate();
         } catch (SQLException e) {
@@ -189,6 +188,7 @@ public class ExamRepositoryImpl implements ExamRepository {
         exam.setExamName(rs.getString("exam_name"));
         exam.setDescription(rs.getString("description"));
         exam.setSubject(rs.getString("subject"));
+        exam.setCourseId(rs.getInt("course_id"));
         exam.setDurationMinutes(rs.getInt("duration_minutes"));
         exam.setTotalQuestions(rs.getInt("total_questions"));
         exam.setTotalMarks(rs.getInt("total_marks"));

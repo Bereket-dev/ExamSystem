@@ -1,11 +1,11 @@
 package com.examsystem.controller;
 
+import com.examsystem.model.Course;
 import com.examsystem.model.Exam;
 import com.examsystem.model.Student;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
 import com.examsystem.service.TeacherService;
-import com.examsystem.util.FormValidator;
 import com.examsystem.util.Session;
 import com.examsystem.util.UiManager;
 import javafx.collections.FXCollections;
@@ -106,10 +106,29 @@ public class AssignStudentsController implements TeacherScreen {
         studentCheckboxContainer.getChildren().clear();
         studentMap.clear();
         Exam exam = examComboBox.getSelectionModel().getSelectedItem();
-        List<Student> students = teacherService.getAllStudents();
+        if (exam == null) {
+            statusLabel.setText("No exam selected for student assignment.");
+            return;
+        }
+
+        Course course = teacherService.findCourseById(exam.getCourseId()).orElse(null);
+        List<Student> students;
+        if (course == null) {
+            statusLabel.setText("No course information found for selected exam. Showing all students.");
+            students = teacherService.getAllStudents();
+        } else {
+            students = teacherService.getStudentsForCourse(course);
+            if (students.isEmpty()) {
+                statusLabel.setText("No students found for " + course.getCourseName() + " (" + course.getDepartment()
+                        + " semester " + course.getSemester() + ").");
+            } else {
+                statusLabel.setText("");
+            }
+        }
+
         for (Student student : students) {
             CheckBox checkBox = new CheckBox(teacherService.getStudentDisplayName(student));
-            if (exam != null && teacherService.isStudentAssignedToExam(student.getStudentId(), exam.getExamId())) {
+            if (teacherService.isStudentAssignedToExam(student.getStudentId(), exam.getExamId())) {
                 checkBox.setSelected(true);
                 checkBox.setStyle("-fx-opacity: 0.8;");
             }

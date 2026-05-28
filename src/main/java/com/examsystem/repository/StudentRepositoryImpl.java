@@ -20,6 +20,7 @@ public class StudentRepositoryImpl implements StudentRepository {
     private static final String SELECT_ASSIGNED_EXAMS = "SELECT e.* FROM exams e JOIN student_exam_assignments a ON e.exam_id = a.exam_id WHERE a.student_id = ? AND e.is_published = TRUE ORDER BY e.exam_date";
     private static final String SELECT_ASSIGNED_WITH_STATUS = "SELECT e.*, a.assignment_id, a.is_attempted FROM exams e JOIN student_exam_assignments a ON e.exam_id = a.exam_id WHERE a.student_id = ? AND e.is_published = TRUE ORDER BY e.exam_date";
     private static final String SELECT_ALL_STUDENTS = "SELECT * FROM students ORDER BY student_id";
+    private static final String SELECT_STUDENTS_BY_DEPARTMENT_AND_SEMESTER = "SELECT * FROM students WHERE department = ? AND semester = ? ORDER BY student_id";
     private static final String SELECT_ASSIGNMENT_ID = "SELECT assignment_id FROM student_exam_assignments WHERE student_id = ? AND exam_id = ? LIMIT 1";
     private static final String SELECT_ASSIGNMENT_ATTEMPTED = "SELECT is_attempted FROM student_exam_assignments WHERE assignment_id = ?";
     private static final String INSERT_ASSIGNMENT = "INSERT INTO student_exam_assignments (exam_id, student_id, is_attempted) VALUES (?, ?, FALSE)";
@@ -117,6 +118,30 @@ public class StudentRepositoryImpl implements StudentRepository {
             }
         } catch (SQLException e) {
             logger.error("Error finding all students", e);
+        }
+        return students;
+    }
+
+    @Override
+    public List<Student> findByDepartmentAndSemester(String department, int semester) {
+        List<Student> students = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(SELECT_STUDENTS_BY_DEPARTMENT_AND_SEMESTER)) {
+            stmt.setString(1, department);
+            stmt.setInt(2, semester);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Student student = new Student();
+                    student.setStudentId(rs.getInt("student_id"));
+                    student.setUserId(rs.getInt("user_id"));
+                    student.setEnrollmentNumber(rs.getString("enrollment_number"));
+                    student.setDepartment(rs.getString("department"));
+                    student.setSemester(rs.getInt("semester"));
+                    students.add(student);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error finding students by department and semester", e);
         }
         return students;
     }

@@ -1,5 +1,6 @@
 package com.examsystem.controller;
 
+import com.examsystem.model.Course;
 import com.examsystem.model.Exam;
 import com.examsystem.model.Teacher;
 import com.examsystem.model.User;
@@ -7,11 +8,13 @@ import com.examsystem.service.TeacherService;
 import com.examsystem.util.FormValidator;
 import com.examsystem.util.Session;
 import com.examsystem.util.UiManager;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -22,10 +25,13 @@ import java.time.LocalTime;
 
 public class CreateExamController implements TeacherScreen {
     @FXML
+    private Label titleLabel;
+
+    @FXML
     private TextField examNameField;
 
     @FXML
-    private TextField subjectField;
+    private ComboBox<Course> courseComboBox;
 
     @FXML
     private TextArea descriptionField;
@@ -62,25 +68,100 @@ public class CreateExamController implements TeacherScreen {
 
     private final TeacherService teacherService = new TeacherService();
     private Teacher teacher;
+    private Exam currentExam;
+    private boolean editMode = false;
 
     @FXML
     public void initialize() {
         saveButton.setOnAction(e -> handleSave());
         backButton.setOnAction(e -> returnToDashboard());
+        courseComboBox.setCellFactory(cb -> new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(Course course, boolean empty) {
+                super.updateItem(course, empty);
+                setText(empty || course == null ? null : course.getCourseName());
+            }
+        });
+        courseComboBox.setButtonCell(courseComboBox.getCellFactory().call(null));
     }
 
     @Override
     public void setTeacherContext(Teacher teacher, User user) {
         this.teacher = teacher;
+        refreshCourseList();
+        populateFormIfEditing();
+    }
+
+    public void setExam(Exam exam) {
+        this.currentExam = exam;
+        this.editMode = exam != null;
+        if (editMode) {
+            titleLabel.setText("Edit Exam");
+            saveButton.setText("Update Exam");
+        }
+        populateFormIfEditing();
+    }
+
+    private void populateFormIfEditing() {
+        if (!editMode || teacher == null || currentExam == null) {
+            return;
+        }
+
+        examNameField.setText(currentExam.getExamName());
+        descriptionField.setText(currentExam.getDescription());
+        durationField.setText(String.valueOf(currentExam.getDurationMinutes()));
+        totalQuestionsField.setText(String.valueOf(currentExam.getTotalQuestions()));
+        totalMarksField.setText(String.valueOf(currentExam.getTotalMarks()));
+        passingMarksField.setText(String.valueOf(currentExam.getPassingMarks()));
+        examDateField.setText(currentExam.getExamDate() == null ? "" : currentExam.getExamDate().toString());
+        examTimeField.setText(currentExam.getExamTime() == null ? "" : currentExam.getExamTime().toString());
+        publishCheckBox.setSelected(currentExam.isPublished());
+        selectCurrentCourse();
+    }
+
+    private void selectCurrentCourse() {
+        if (currentExam == null || courseComboBox.getItems().isEmpty()) {
+            return;
+        }
+
+        var existingCourse = courseComboBox.getItems().stream()
+                .filter(c -> c.getCourseId() == currentExam.getCourseId())
+                .findFirst();
+        if (existingCourse.isPresent()) {
+            courseComboBox.getSelectionModel().select(existingCourse.get());
+            return;
+        }
+
+        teacherService.findCourseById(currentExam.getCourseId()).ifPresent(course -> {
+            if (!courseComboBox.getItems().contains(course)) {
+                courseComboBox.getItems().add(0, course);
+            }
+            courseComboBox.getSelectionModel().select(course);
+        });
+    }
+
+    private void refreshCourseList() {
+        if (teacher == null) {
+            return;
+        }
+        var courses = teacherService.getAssignedCourses(teacher.getTeacherId());
+        courseComboBox.setItems(FXCollections.observableArrayList(courses));
+        if (!courses.isEmpty()) {
+            courseComboBox.getSelectionModel().selectFirst();
+            statusLabel.setText("");
+        } else {
+            statusLabel.getStyleClass().removeAll("status-success");
+            statusLabel.getStyleClass().add("status-error");
+            statusLabel.setText("No assigned courses found. Please ask your admin to assign a course.");
+        }
     }
 
     private void handleSave() {
-        FormValidator.clearErrors(examNameField, subjectField, durationField, totalQuestionsField,
+        FormValidator.clearErrors(examNameField, durationField, totalQuestionsField,
                 totalMarksField, passingMarksField, examDateField, examTimeField);
 
         FormValidator.ValidationResult validation = FormValidator.combine(
                 FormValidator.required(examNameField, "Exam name"),
-                FormValidator.required(subjectField, "Subject"),
                 FormValidator.positiveInteger(durationField, "Duration", true),
                 FormValidator.positiveInteger(totalQuestionsField, "Total questions", true),
                 FormValidator.positiveInteger(totalMarksField, "Total marks", true),
@@ -90,6 +171,14 @@ public class CreateExamController implements TeacherScreen {
 
         if (!validation.isValid()) {
             FormValidator.applyResult(validation, statusLabel);
+            return;
+        }
+
+        Course selectedCourse = courseComboBox.getSelectionModel().getSelectedItem();
+        if (selectedCourse == null) {
+            statusLabel.getStyleClass().removeAll("status-success");
+            statusLabel.getStyleClass().add("status-error");
+            statusLabel.setText("Please select a course for the exam.");
             return;
         }
 
@@ -103,10 +192,11 @@ public class CreateExamController implements TeacherScreen {
                 return;
             }
 
-            Exam exam = new Exam();
+            Exam exam = editMode ? currentExam : new Exam();
             exam.setTeacherId(teacher.getTeacherId());
             exam.setExamName(examNameField.getText().trim());
-            exam.setSubject(subjectField.getText().trim());
+            exam.setSubject(selectedCourse.getCourseName());
+            exam.setCourseId(selectedCourse.getCourseId());
             exam.setDescription(descriptionField.getText().trim());
             exam.setDurationMinutes(Integer.parseInt(durationField.getText().trim()));
             exam.setTotalQuestions(Integer.parseInt(totalQuestionsField.getText().trim()));
@@ -121,10 +211,17 @@ public class CreateExamController implements TeacherScreen {
                 exam.setExamTime(LocalTime.parse(examTimeField.getText().trim()));
             }
 
-            teacherService.createExam(exam);
-            statusLabel.getStyleClass().removeAll("status-error");
-            statusLabel.getStyleClass().add("status-success");
-            statusLabel.setText("Exam created successfully (ID: " + exam.getExamId() + ").");
+            if (editMode) {
+                teacherService.updateExam(teacher.getTeacherId(), exam);
+                statusLabel.getStyleClass().removeAll("status-error");
+                statusLabel.getStyleClass().add("status-success");
+                statusLabel.setText("Exam updated successfully.");
+            } else {
+                teacherService.createExam(exam);
+                statusLabel.getStyleClass().removeAll("status-error");
+                statusLabel.getStyleClass().add("status-success");
+                statusLabel.setText("Exam created successfully (ID: " + exam.getExamId() + ").");
+            }
         } catch (Exception e) {
             statusLabel.getStyleClass().removeAll("status-success");
             statusLabel.getStyleClass().add("status-error");

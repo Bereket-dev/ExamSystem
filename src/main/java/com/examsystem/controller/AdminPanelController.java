@@ -743,7 +743,13 @@ public class AdminPanelController {
             ObservableList<TeacherComboEntry> items = FXCollections.observableArrayList();
 
             for (User user : teachers) {
-                items.add(new TeacherComboEntry(user.getUserId(), user.getFullName(), user.getUsername()));
+                Optional<Teacher> teacherProfile = adminService.getTeacherByUserId(user.getUserId());
+                if (teacherProfile.isPresent()) {
+                    items.add(new TeacherComboEntry(teacherProfile.get().getTeacherId(), user.getFullName(),
+                            user.getUsername()));
+                } else {
+                    logger.warn("Teacher profile missing for user id {}", user.getUserId());
+                }
             }
 
             teacherComboBox.setItems(items);

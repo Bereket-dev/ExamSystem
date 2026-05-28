@@ -8,21 +8,24 @@
     fx:controller="com.examsystem.controller.CreateExamController">
     <top>
         <HBox styleClass="app-header">
-            <Label text="Create Exam" styleClass="header-title" />
+            <Label fx:id="titleLabel" text="Create Exam" styleClass="header-title" />
         </HBox>
     </top>
     <center>
         <VBox spacing="12" styleClass="form-grid">
             <TextField fx:id="examNameField" promptText="Exam Name *" />
-            <TextField fx:id="subjectField" promptText="Subject *" />
+            <ComboBox fx:id="courseComboBox" promptText="Select Course *" />
             <TextArea fx:id="descriptionField" promptText="Description" prefRowCount="3" />
             <HBox spacing="10">
-                <TextField fx:id="durationField" promptText="Duration (minutes) *" HBox.hgrow="ALWAYS" />
-                <TextField fx:id="totalQuestionsField" promptText="Total Questions *" HBox.hgrow="ALWAYS" />
+                <TextField fx:id="durationField" promptText="Duration (minutes) *"
+                    HBox.hgrow="ALWAYS" />
+                <TextField fx:id="totalQuestionsField" promptText="Total Questions *"
+                    HBox.hgrow="ALWAYS" />
             </HBox>
             <HBox spacing="10">
                 <TextField fx:id="totalMarksField" promptText="Total Marks *" HBox.hgrow="ALWAYS" />
-                <TextField fx:id="passingMarksField" promptText="Passing Marks *" HBox.hgrow="ALWAYS" />
+                <TextField fx:id="passingMarksField" promptText="Passing Marks *"
+                    HBox.hgrow="ALWAYS" />
             </HBox>
             <HBox spacing="10">
                 <TextField fx:id="examDateField" promptText="Date (YYYY-MM-DD)" HBox.hgrow="ALWAYS" />

@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS exams (
     exam_name VARCHAR(100) NOT NULL,
     description TEXT,
     subject VARCHAR(50) NOT NULL,
+    course_id INT,
     duration_minutes INT NOT NULL,
     total_questions INT NOT NULL,
     total_marks INT NOT NULL,
@@ -59,7 +60,9 @@ CREATE TABLE IF NOT EXISTS exams (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE SET NULL,
     INDEX idx_exam_teacher (teacher_id),
+    INDEX idx_exam_course (course_id),
     INDEX idx_exam_date (exam_date),
     INDEX idx_published (is_published)
 );

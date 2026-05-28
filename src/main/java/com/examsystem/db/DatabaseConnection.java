@@ -7,7 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Database Connection Manager using HikariCP connection pooling.
@@ -68,11 +71,59 @@ public class DatabaseConnection {
             dataSource = new HikariDataSource(config);
             logger.info("Database connection pool initialized for user '{}' on '{}'",
                     getDbUser(), getDbName());
+            runSchemaMigrationIfNeeded();
         } catch (Exception e) {
             logger.error("Failed to initialize database connection pool", e);
             throw new SQLException(
                     "Cannot connect to MySQL. Run: sudo mysql < src/main/resources/sql/setup_user.sql",
                     e);
+        }
+    }
+
+    private static void runSchemaMigrationIfNeeded() {
+        try (Connection conn = dataSource.getConnection()) {
+            if (!doesTableExist(conn, "exams")) {
+                logger.warn("ExamSystem database table 'exams' does not exist. Ensure schema.sql has been applied.");
+                return;
+            }
+
+            if (!doesColumnExist(conn, "exams", "course_id")) {
+                logger.info("Applying missing course_id migration to exams table");
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("ALTER TABLE exams ADD COLUMN course_id INT NULL AFTER subject");
+                    stmt.executeUpdate(
+                            "ALTER TABLE exams ADD CONSTRAINT fk_exams_course_id FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE SET NULL");
+                    stmt.executeUpdate("CREATE INDEX idx_exam_course ON exams(course_id)");
+                }
+                logger.info("Migration completed: added course_id column to exams table");
+            } else {
+                logger.info("Database schema verified: exams.course_id is present");
+            }
+        } catch (SQLException e) {
+            logger.error("Schema migration check failed", e);
+        }
+    }
+
+    private static boolean doesTableExist(Connection conn, String tableName) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, getDbName());
+            stmt.setString(2, tableName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        }
+    }
+
+    private static boolean doesColumnExist(Connection conn, String tableName, String columnName) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, getDbName());
+            stmt.setString(2, tableName);
+            stmt.setString(3, columnName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
         }
     }
 

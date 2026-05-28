@@ -1,5 +1,6 @@
 package com.examsystem.service;
 
+import com.examsystem.model.Course;
 import com.examsystem.model.Exam;
 import com.examsystem.model.ExamMonitoringEntry;
 import com.examsystem.model.ExamReportEntry;
@@ -7,6 +8,8 @@ import com.examsystem.model.Question;
 import com.examsystem.model.QuestionOption;
 import com.examsystem.model.Student;
 import com.examsystem.model.Teacher;
+import com.examsystem.repository.CourseRepository;
+import com.examsystem.repository.CourseRepositoryImpl;
 import com.examsystem.repository.ExamAttemptRepository;
 import com.examsystem.repository.ExamAttemptRepositoryImpl;
 import com.examsystem.repository.ExamRepository;
@@ -15,6 +18,8 @@ import com.examsystem.repository.QuestionRepository;
 import com.examsystem.repository.QuestionRepositoryImpl;
 import com.examsystem.repository.StudentRepository;
 import com.examsystem.repository.StudentRepositoryImpl;
+import com.examsystem.repository.TeacherCourseRepository;
+import com.examsystem.repository.TeacherCourseRepositoryImpl;
 import com.examsystem.repository.TeacherRepository;
 import com.examsystem.repository.TeacherRepositoryImpl;
 import com.examsystem.repository.UserRepository;
@@ -31,6 +36,8 @@ public class TeacherService {
     private final ExamRepository examRepository;
     private final QuestionRepository questionRepository;
     private final StudentRepository studentRepository;
+    private final CourseRepository courseRepository;
+    private final TeacherCourseRepository teacherCourseRepository;
     private final ExamAttemptRepository attemptRepository;
     private final UserRepository userRepository;
 
@@ -39,6 +46,8 @@ public class TeacherService {
         this.examRepository = new ExamRepositoryImpl();
         this.questionRepository = new QuestionRepositoryImpl();
         this.studentRepository = new StudentRepositoryImpl();
+        this.courseRepository = new CourseRepositoryImpl();
+        this.teacherCourseRepository = new TeacherCourseRepositoryImpl();
         this.attemptRepository = new ExamAttemptRepositoryImpl();
         this.userRepository = new UserRepositoryImpl();
     }
@@ -124,6 +133,24 @@ public class TeacherService {
 
     public List<Student> getAllStudents() {
         return studentRepository.findAll();
+    }
+
+    public List<Course> getAssignedCourses(int teacherId) {
+        return teacherCourseRepository.findCoursesByTeacher(teacherId).stream()
+                .map(assignment -> courseRepository.findById(assignment.getCourseId()).orElse(null))
+                .filter(course -> course != null)
+                .toList();
+    }
+
+    public Optional<Course> findCourseById(int courseId) {
+        return courseRepository.findById(courseId);
+    }
+
+    public List<Student> getStudentsForCourse(Course course) {
+        if (course == null || course.getDepartment() == null) {
+            return List.of();
+        }
+        return studentRepository.findByDepartmentAndSemester(course.getDepartment(), course.getSemester());
     }
 
     public String getStudentDisplayName(Student student) {

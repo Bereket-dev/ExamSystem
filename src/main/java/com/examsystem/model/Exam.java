@@ -13,6 +13,7 @@ public class Exam {
     private String examName;
     private String description;
     private String subject;
+    private int courseId;
     private int durationMinutes;
     private int totalQuestions;
     private int totalMarks;
@@ -92,6 +93,14 @@ public class Exam {
         return totalQuestions;
     }
 
+    public int getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(int courseId) {
+        this.courseId = courseId;
+    }
+
     public void setTotalQuestions(int totalQuestions) {
         this.totalQuestions = totalQuestions;
     }
@@ -158,6 +167,7 @@ public class Exam {
                 "examId=" + examId +
                 ", examName='" + examName + '\'' +
                 ", subject='" + subject + '\'' +
+                ", courseId=" + courseId +
                 ", totalQuestions=" + totalQuestions +
                 ", totalMarks=" + totalMarks +
                 ", isPublished=" + isPublished +
