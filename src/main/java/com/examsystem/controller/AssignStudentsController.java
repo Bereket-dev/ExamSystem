@@ -29,6 +29,12 @@ public class AssignStudentsController implements TeacherScreen {
     private ComboBox<Exam> examComboBox;
 
     @FXML
+    private Label examCourseLabel;
+
+    @FXML
+    private CheckBox selectAllCheckBox;
+
+    @FXML
     private VBox studentCheckboxContainer;
 
     @FXML
@@ -47,35 +53,54 @@ public class AssignStudentsController implements TeacherScreen {
 
     @FXML
     public void initialize() {
-        examComboBox.setCellFactory(cb -> new javafx.scene.control.ListCell<>() {
-            @Override
-            protected void updateItem(Exam exam, boolean empty) {
-                super.updateItem(exam, empty);
-                setText(empty || exam == null ? null : exam.getExamName());
-            }
-        });
-        examComboBox.setButtonCell(examComboBox.getCellFactory().call(null));
-        examComboBox.setOnAction(e -> refreshStudents());
+        try {
+            examComboBox.setCellFactory(cb -> new javafx.scene.control.ListCell<>() {
+                @Override
+                protected void updateItem(Exam exam, boolean empty) {
+                    super.updateItem(exam, empty);
+                    setText(empty || exam == null ? null : exam.getExamName());
+                }
+            });
+            examComboBox.setButtonCell(examComboBox.getCellFactory().call(null));
+            examComboBox.setOnAction(e -> refreshStudents());
+            selectAllCheckBox.setOnAction(e -> setAllCheckboxesSelected(selectAllCheckBox.isSelected()));
 
-        assignButton.setOnAction(e -> handleAssign());
-        backButton.setOnAction(e -> returnToDashboard());
+            assignButton.setOnAction(e -> handleAssign());
+            backButton.setOnAction(e -> returnToDashboard());
+        } catch (Exception e) {
+            System.err.println("Error initializing AssignStudentsController: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void setTeacherContext(Teacher teacher, User user) {
         this.teacher = teacher;
         refreshExamList();
-        refreshStudents();
+        // refreshStudents will be called by setExam or after exam selection
     }
 
     public void setExam(Exam exam) {
         this.selectedExam = exam;
-        if (examComboBox != null) {
-            if (teacher != null) {
+        try {
+            if (examComboBox != null && teacher != null) {
                 refreshExamList();
+                Exam matching = examComboBox.getItems().stream()
+                        .filter(e -> e.getExamId() == exam.getExamId())
+                        .findFirst()
+                        .orElse(null);
+                if (matching != null) {
+                    examComboBox.getSelectionModel().select(matching);
+                    examComboBox.setDisable(true);
+                    refreshStudents();
+                }
             }
-            examComboBox.getSelectionModel().select(exam);
-            examComboBox.setDisable(true);
+        } catch (Exception e) {
+            System.err.println("Error setting exam in AssignStudentsController: " + e.getMessage());
+            e.printStackTrace();
+            if (statusLabel != null) {
+                statusLabel.setText("Error loading exam: " + e.getMessage());
+            }
         }
     }
 
@@ -100,23 +125,30 @@ public class AssignStudentsController implements TeacherScreen {
         } else if (!exams.isEmpty()) {
             examComboBox.getSelectionModel().selectFirst();
         }
+        updateExamCourseLabel();
     }
 
     private void refreshStudents() {
         studentCheckboxContainer.getChildren().clear();
         studentMap.clear();
+        selectAllCheckBox.setSelected(false);
+
         Exam exam = examComboBox.getSelectionModel().getSelectedItem();
         if (exam == null) {
             statusLabel.setText("No exam selected for student assignment.");
+            examCourseLabel.setText("");
             return;
         }
 
         Course course = teacherService.findCourseById(exam.getCourseId()).orElse(null);
         List<Student> students;
         if (course == null) {
-            statusLabel.setText("No course information found for selected exam. Showing all students.");
-            students = teacherService.getAllStudents();
+            examCourseLabel.setText("Exam course information missing.");
+            statusLabel.setText("No course information found for selected exam. No students to assign.");
+            return;
         } else {
+            examCourseLabel.setText("Course: " + course.getCourseName() + " | Dept: " + course.getDepartment()
+                    + " | Semester: " + course.getSemester());
             students = teacherService.getStudentsForCourse(course);
             if (students.isEmpty()) {
                 statusLabel.setText("No students found for " + course.getCourseName() + " (" + course.getDepartment()
@@ -128,9 +160,9 @@ public class AssignStudentsController implements TeacherScreen {
 
         for (Student student : students) {
             CheckBox checkBox = new CheckBox(teacherService.getStudentDisplayName(student));
+            checkBox.selectedProperty().addListener((obs, oldVal, newVal) -> updateSelectAllCheckbox());
             if (teacherService.isStudentAssignedToExam(student.getStudentId(), exam.getExamId())) {
                 checkBox.setSelected(true);
-                checkBox.setStyle("-fx-opacity: 0.8;");
             }
             studentMap.put(checkBox, student);
             studentCheckboxContainer.getChildren().add(checkBox);
@@ -139,7 +171,8 @@ public class AssignStudentsController implements TeacherScreen {
 
     private void handleAssign() {
         statusLabel.setText("");
-        if (examComboBox.getSelectionModel().getSelectedItem() == null) {
+        Exam exam = examComboBox.getSelectionModel().getSelectedItem();
+        if (exam == null) {
             statusLabel.setText("Please select an exam.");
             return;
         }
@@ -154,7 +187,6 @@ public class AssignStudentsController implements TeacherScreen {
             return;
         }
 
-        Exam exam = examComboBox.getSelectionModel().getSelectedItem();
         try {
             for (Student student : selectedStudents) {
                 teacherService.assignExamToStudent(exam.getExamId(), student.getStudentId());
@@ -165,9 +197,39 @@ public class AssignStudentsController implements TeacherScreen {
             statusLabel.getStyleClass().removeAll("status-error");
             statusLabel.getStyleClass().add("status-success");
             statusLabel.setText("Assigned exam to " + selectedStudents.size() + " student(s).");
+            refreshStudents();
         } catch (Exception e) {
+            statusLabel.getStyleClass().removeAll("status-success");
+            statusLabel.getStyleClass().add("status-error");
             statusLabel.setText("Assignment failed: " + e.getMessage());
         }
+    }
+
+    private void setAllCheckboxesSelected(boolean selected) {
+        for (CheckBox checkBox : studentMap.keySet()) {
+            checkBox.setSelected(selected);
+        }
+    }
+
+    private void updateSelectAllCheckbox() {
+        if (studentMap.isEmpty()) {
+            selectAllCheckBox.setSelected(false);
+            return;
+        }
+        boolean allSelected = studentMap.keySet().stream().allMatch(CheckBox::isSelected);
+        selectAllCheckBox.setSelected(allSelected);
+    }
+
+    private void updateExamCourseLabel() {
+        Exam exam = examComboBox.getSelectionModel().getSelectedItem();
+        if (exam == null) {
+            examCourseLabel.setText("");
+            return;
+        }
+        teacherService.findCourseById(exam.getCourseId()).ifPresentOrElse(
+                course -> examCourseLabel.setText("Course: " + course.getCourseName() + " | Dept: "
+                        + course.getDepartment() + " | Semester: " + course.getSemester()),
+                () -> examCourseLabel.setText("Course information unavailable."));
     }
 
     private void returnToDashboard() {

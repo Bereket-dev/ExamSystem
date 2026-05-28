@@ -114,9 +114,12 @@ public class TeacherDashboardController {
             }
         });
 
-        createExamButton.setOnAction(e -> openScreen("/com/examsystem/fxml/CreateExam.fxml", "Create Exam", CreateExamController.class));
-        monitoringButton.setOnAction(e -> openScreen("/com/examsystem/fxml/Monitoring.fxml", "Live Monitoring", MonitoringController.class));
-        reportsButton.setOnAction(e -> openScreen("/com/examsystem/fxml/Reports.fxml", "Reports", ReportsController.class));
+        createExamButton.setOnAction(
+                e -> openScreen("/com/examsystem/fxml/CreateExam.fxml", "Create Exam", CreateExamController.class));
+        monitoringButton.setOnAction(
+                e -> openScreen("/com/examsystem/fxml/Monitoring.fxml", "Live Monitoring", MonitoringController.class));
+        reportsButton
+                .setOnAction(e -> openScreen("/com/examsystem/fxml/Reports.fxml", "Reports", ReportsController.class));
         logoutButton.setOnAction(e -> handleLogout());
     }
 

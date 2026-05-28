@@ -17,6 +17,10 @@
                 <Label text="Select Exam:" />
                 <ComboBox fx:id="examComboBox" HBox.hgrow="ALWAYS" />
             </HBox>
+            <Label fx:id="examCourseLabel" text="" styleClass="subsection-text" wrapText="true" />
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <CheckBox fx:id="selectAllCheckBox" text="Select All" />
+            </HBox>
             <Label text="Select students to assign" styleClass="subsection-title" />
             <ScrollPane fitToWidth="true" fitToHeight="true">
                 <content>
