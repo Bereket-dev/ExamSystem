@@ -63,3 +63,6 @@ local.properties
 !pom.xml
 
 # context/
+
+data/*
+!data/.gitkeep
