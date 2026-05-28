@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.examsystem.controller.StudentDialogController"
+    style="-fx-font-family: 'Segoe UI';">
+
+    <content>
+        <VBox spacing="15" style="-fx-padding: 20;">
+
+            <!-- User Information Section -->
+            <VBox spacing="10"
+                style="-fx-border-color: #bdc3c7; -fx-border-radius: 5; -fx-padding: 10;">
+                <Label text="User Account Information"
+                    style="-fx-font-weight: bold; -fx-font-size: 12;" />
+
+                <HBox spacing="20">
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <Label text="Username:" style="-fx-font-weight: bold;" />
+                        <TextField fx:id="usernameField" promptText="Enter username..." />
+                    </VBox>
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <Label text="Password:" style="-fx-font-weight: bold;" />
+                        <PasswordField fx:id="passwordField" promptText="Enter password..." />
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="20">
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <Label text="Full Name:" style="-fx-font-weight: bold;" />
+                        <TextField fx:id="fullNameField" promptText="Enter full name..." />
+                    </VBox>
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <Label text="Email:" style="-fx-font-weight: bold;" />
+                        <TextField fx:id="emailField" promptText="Enter email address..." />
+                    </VBox>
+                </HBox>
+            </VBox>
+
+            <!-- Student Information Section -->
+            <VBox spacing="10"
+                style="-fx-border-color: #bdc3c7; -fx-border-radius: 5; -fx-padding: 10;">
+                <Label text="Student Information" style="-fx-font-weight: bold; -fx-font-size: 12;" />
+
+                <HBox spacing="20">
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <Label text="Enrollment Number:" style="-fx-font-weight: bold;" />
+                        <TextField fx:id="enrollmentField" promptText="e.g., EN001..." />
+                    </VBox>
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <Label text="Department:" style="-fx-font-weight: bold;" />
+                        <TextField fx:id="departmentField" promptText="Enter department..." />
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="20">
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <Label text="Semester:" style="-fx-font-weight: bold;" />
+                        <Spinner fx:id="semesterSpinner" editable="true" />
+                    </VBox>
+                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                        <Label text="Active:" style="-fx-font-weight: bold;" />
+                        <CheckBox fx:id="activeCheckBox" selected="true" />
+                    </VBox>
+                </HBox>
+            </VBox>
+
+        </VBox>
+    </content>
+
+    <buttonTypes>
+        <ButtonType text="Save" buttonData="OK_DONE" />
+        <ButtonType text="Cancel" buttonData="CANCEL_CLOSE" />
+    </buttonTypes>
+
+</DialogPane>
