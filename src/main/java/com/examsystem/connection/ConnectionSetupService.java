@@ -84,9 +84,13 @@ public final class ConnectionSetupService {
         }
     }
 
-    /** Prepare admin to wait for a client handshake on the setup screen. */
+    /**
+     * Sync point: admin UI polls for clients. Called AFTER applyAdminServerMode() has already
+     * put the registry in waiting state.
+     */
     public static void beginAdminWaitForClient() {
-        ClientSessionRegistry.getInstance().beginWaitingForClient();
+        // Already in waiting state from applyAdminServerMode(); this is just for sync
+        logger.debug("Admin UI now polling for client registrations");
     }
 
     /** Admin device: start TCP + RMI registry (no remote client connection). */
@@ -107,11 +111,15 @@ public final class ConnectionSetupService {
         ConfigManager.setRuntimeProperty("rmi.registry.host", "localhost");
         ConfigManager.setRuntimeProperty("rmi.registry.port", String.valueOf(port));
 
+        // CRITICAL: Enter waiting state BEFORE starting server so client registrations are captured
+        ClientSessionRegistry.getInstance().beginWaitingForClient();
+        logger.debug("Admin waiting state ENABLED before server start");
+
         NetworkManager network = NetworkManager.getInstance();
         RMIManager rmi = RMIManager.getInstance();
         network.startServer();
         rmi.startServer();
-        logger.info("Admin server mode: TCP and RMI started on port {}", port);
+        logger.info("Admin server mode: TCP and RMI started on port {} (already waiting for clients)", port);
 
         SyncService.getInstance().configureForUser(user);
         SyncManager sync = SyncManager.getInstance();
@@ -213,6 +221,8 @@ public final class ConnectionSetupService {
         String username = user.getUsername();
         String password = user.getPassword();
 
+        logger.info("[CLIENT-CONNECT] Starting network connection for {} to {}:{}", username, host, port);
+
         switch (user.getRole()) {
             case TEACHER -> {
                 try {
@@ -220,11 +230,15 @@ public final class ConnectionSetupService {
                 } catch (Exception e) {
                     logger.warn("Teacher TCP server not started: {}", e.getMessage());
                 }
+                logger.debug("[CLIENT-CONNECT] Attempting RMI client connection");
                 if (!rmi.connectClient(host, port)) {
                     throw new IllegalStateException("Could not connect to the admin RMI server.");
                 }
+                logger.info("[CLIENT-CONNECT] RMI client connected, logging in");
                 rmi.clientLogin(username, password);
+                logger.info("[CLIENT-CONNECT] Login successful, notifying admin of presence");
                 notifyAdminOfClientPresence(user);
+                logger.info("[CLIENT-CONNECT] Presence notification complete");
             }
             case STUDENT -> {
                 try {
@@ -234,11 +248,15 @@ public final class ConnectionSetupService {
                 } catch (Exception e) {
                     logger.warn("Student TCP connect skipped: {}", e.getMessage());
                 }
+                logger.debug("[CLIENT-CONNECT] Attempting RMI client connection");
                 if (!rmi.connectClient(host, port)) {
                     throw new IllegalStateException("Could not connect to the admin RMI server.");
                 }
+                logger.info("[CLIENT-CONNECT] RMI client connected, logging in");
                 rmi.clientLogin(username, password);
+                logger.info("[CLIENT-CONNECT] Login successful, notifying admin of presence");
                 notifyAdminOfClientPresence(user);
+                logger.info("[CLIENT-CONNECT] Presence notification complete");
             }
             default -> throw new IllegalArgumentException("Only teachers and students use client online mode");
         }
@@ -248,13 +266,19 @@ public final class ConnectionSetupService {
         if (user.getRole() == User.UserRole.ADMIN) {
             return;
         }
+        logger.info("[PRESENCE-NOTIFY] Registering {} presence with admin server", user.getUsername());
+        // Presence registration is REQUIRED — if it fails, the connection setup fails
         ClientPresenceResult result = RMIManager.getInstance().registerClientPresence(
                 user.getUsername(), user.getRole().name());
+        logger.info("[PRESENCE-NOTIFY] Registration result: success={}, message={}", result.isSuccess(), result.getMessage());
         if (result.isSuccess()) {
-            logger.info("Admin notified of client presence: {}", result.getMessage());
-        } else {
-            logger.warn("Client presence notification failed: {}", result.getMessage());
+            logger.info("[PRESENCE-NOTIFY] Admin notified of client presence successfully");
+            return;
         }
+        logger.error("[PRESENCE-NOTIFY] Registration FAILED: {}", result.getMessage());
+        throw new IllegalStateException(
+                "Failed to register with admin server. The admin may not be running or accepting connections. "
+                        + "Details: " + result.getMessage());
     }
 
     public static ConnectionProfile profileFromInputs(String host, int port) {
