@@ -177,8 +177,8 @@ public class LoginController {
 
         switch (role) {
             case ADMIN:
-                logger.info("Navigating to Admin Dashboard");
-                showDashboard("Admin Dashboard");
+                logger.info("Navigating to Admin Panel");
+                navigateToAdminPanel();
                 break;
             case TEACHER:
                 logger.info("Navigating to Teacher Dashboard");
@@ -220,6 +220,21 @@ public class LoginController {
         } catch (Exception e) {
             logger.error("Error navigating to student dashboard", e);
             showError("Unable to open student dashboard: " + e.getMessage());
+        }
+    }
+
+    private void navigateToAdminPanel() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/examsystem/fxml/AdminPanel.fxml"));
+            Parent root = loader.load();
+            AdminPanelController controller = loader.getController();
+            controller.setCurrentAdmin(Session.getInstance().getCurrentUser());
+
+            Stage stage = (Stage) loginButton.getScene().getWindow();
+            UiManager.navigateToApp(stage, root, "Admin Panel - ExamSystem");
+        } catch (Exception e) {
+            logger.error("Error navigating to admin panel", e);
+            showError("Unable to open admin panel: " + e.getMessage());
         }
     }
 

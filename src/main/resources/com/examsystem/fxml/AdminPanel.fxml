@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.examsystem.controller.AdminPanelController"
+    style="-fx-font-family: 'Segoe UI';">
+
+    <!-- Top Navigation Bar -->
+    <top>
+        <VBox style="-fx-background-color: #2c3e50; -fx-padding: 15;">
+            <HBox spacing="20" alignment="CENTER_LEFT">
+                <Text text="Admin Panel"
+                    style="-fx-font-size: 24; -fx-fill: white; -fx-font-weight: bold;" />
+                <Separator orientation="VERTICAL" />
+                <Label fx:id="adminNameLabel" style="-fx-text-fill: white; -fx-font-size: 12;" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="Logout" fx:id="logoutButton"
+                    style="-fx-font-size: 11; -fx-padding: 8 20;" />
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- Main Content Area with Tabs -->
+    <center>
+        <TabPane style="-fx-font-size: 12;" tabClosingPolicy="UNAVAILABLE">
+
+            <!-- Teachers Tab -->
+            <Tab text="Teachers Management" fx:id="teachersTab">
+                <VBox spacing="10" style="-fx-padding: 15;">
+
+                    <!-- Search and Add Teacher -->
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="Search Teacher:" style="-fx-font-weight: bold;" />
+                        <TextField fx:id="teacherSearchField"
+                            promptText="Enter name, email, or username..."
+                            style="-fx-pref-width: 300;" />
+                        <Button text="Search" fx:id="searchTeacherButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20;" />
+                        <Button text="Reset" fx:id="resetTeacherSearchButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20;" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button text="Add New Teacher" fx:id="addTeacherButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20; -fx-text-fill: white; -fx-background-color: #27ae60;" />
+                    </HBox>
+
+                    <!-- Teachers Table -->
+                    <TableView fx:id="teachersTable" style="-fx-font-size: 11;">
+                        <columns>
+                            <TableColumn text="User ID" prefWidth="60" />
+                            <TableColumn text="Username" prefWidth="100" />
+                            <TableColumn text="Full Name" prefWidth="120" />
+                            <TableColumn text="Email" prefWidth="150" />
+                            <TableColumn text="Department" prefWidth="100" />
+                            <TableColumn text="Qualification" prefWidth="100" />
+                            <TableColumn text="Experience (Years)" prefWidth="100" />
+                            <TableColumn text="Status" prefWidth="80" />
+                            <TableColumn text="Actions" prefWidth="100" />
+                        </columns>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <!-- Students Tab -->
+            <Tab text="Students Management" fx:id="studentsTab">
+                <VBox spacing="10" style="-fx-padding: 15;">
+
+                    <!-- Search and Add Student -->
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="Search Student:" style="-fx-font-weight: bold;" />
+                        <TextField fx:id="studentSearchField"
+                            promptText="Enter name, email, or enrollment number..."
+                            style="-fx-pref-width: 300;" />
+                        <Button text="Search" fx:id="searchStudentButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20;" />
+                        <Button text="Reset" fx:id="resetStudentSearchButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20;" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button text="Add New Student" fx:id="addStudentButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20; -fx-text-fill: white; -fx-background-color: #3498db;" />
+                    </HBox>
+
+                    <!-- Students Table -->
+                    <TableView fx:id="studentsTable" style="-fx-font-size: 11;">
+                        <columns>
+                            <TableColumn text="User ID" prefWidth="60" />
+                            <TableColumn text="Username" prefWidth="100" />
+                            <TableColumn text="Full Name" prefWidth="120" />
+                            <TableColumn text="Email" prefWidth="150" />
+                            <TableColumn text="Enrollment #" prefWidth="100" />
+                            <TableColumn text="Department" prefWidth="100" />
+                            <TableColumn text="Semester" prefWidth="80" />
+                            <TableColumn text="Status" prefWidth="80" />
+                            <TableColumn text="Actions" prefWidth="100" />
+                        </columns>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <!-- Courses Tab -->
+            <Tab text="Courses Management" fx:id="coursesTab">
+                <VBox spacing="10" style="-fx-padding: 15;">
+
+                    <!-- Search and Add Course -->
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="Search Course:" style="-fx-font-weight: bold;" />
+                        <TextField fx:id="courseSearchField"
+                            promptText="Enter course code or name..." style="-fx-pref-width: 300;" />
+                        <Button text="Search" fx:id="searchCourseButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20;" />
+                        <Button text="Reset" fx:id="resetCourseSearchButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20;" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button text="Add New Course" fx:id="addCourseButton"
+                            style="-fx-font-size: 11; -fx-padding: 8 20; -fx-text-fill: white; -fx-background-color: #e67e22;" />
+                    </HBox>
+
+                    <!-- Courses Table -->
+                    <TableView fx:id="coursesTable" style="-fx-font-size: 11;">
+                        <columns>
+                            <TableColumn text="Course ID" prefWidth="70" />
+                            <TableColumn text="Course Code" prefWidth="100" />
+                            <TableColumn text="Course Name" prefWidth="140" />
+                            <TableColumn text="Department" prefWidth="100" />
+                            <TableColumn text="Credits" prefWidth="70" />
+                            <TableColumn text="Semester" prefWidth="80" />
+                            <TableColumn text="Status" prefWidth="80" />
+                            <TableColumn text="Actions" prefWidth="100" />
+                        </columns>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <!-- Teacher-Course Assignment Tab -->
+            <Tab text="Assign Teachers to Courses" fx:id="assignmentTab">
+                <VBox spacing="15" style="-fx-padding: 15;">
+
+                    <!-- Teacher Selection -->
+                    <VBox spacing="5"
+                        style="-fx-border-color: #bdc3c7; -fx-border-radius: 5; -fx-padding: 10;">
+                        <Label text="Step 1: Select Teacher"
+                            style="-fx-font-weight: bold; -fx-font-size: 12;" />
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label text="Teacher:" />
+                            <ComboBox fx:id="teacherComboBox" prefWidth="300"
+                                promptText="Select a teacher..." />
+                            <Label fx:id="selectedTeacherLabel" text="No teacher selected"
+                                style="-fx-text-fill: #7f8c8d;" />
+                        </HBox>
+                    </VBox>
+
+                    <!-- Course Selection -->
+                    <VBox spacing="5"
+                        style="-fx-border-color: #bdc3c7; -fx-border-radius: 5; -fx-padding: 10;">
+                        <Label text="Step 2: Select Course"
+                            style="-fx-font-weight: bold; -fx-font-size: 12;" />
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label text="Course:" />
+                            <ComboBox fx:id="courseComboBox" prefWidth="300"
+                                promptText="Select a course..." />
+                            <Label fx:id="selectedCourseLabel" text="No course selected"
+                                style="-fx-text-fill: #7f8c8d;" />
+                        </HBox>
+                    </VBox>
+
+                    <!-- Assignment Action -->
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button text="Assign Teacher to Course" fx:id="assignButton"
+                            style="-fx-font-size: 11; -fx-padding: 10 20; -fx-text-fill: white; -fx-background-color: #27ae60;" />
+                        <Button text="Remove Assignment" fx:id="removeAssignmentButton"
+                            style="-fx-font-size: 11; -fx-padding: 10 20; -fx-text-fill: white; -fx-background-color: #e74c3c;" />
+                    </HBox>
+
+                    <!-- Teacher Courses List -->
+                    <Separator />
+                    <Label text="Courses Assigned to Selected Teacher"
+                        style="-fx-font-weight: bold; -fx-font-size: 12;" />
+                    <TableView fx:id="teacherCoursesTable" style="-fx-font-size: 11;"
+                        prefHeight="150">
+                        <columns>
+                            <TableColumn text="Course ID" prefWidth="70" />
+                            <TableColumn text="Course Code" prefWidth="100" />
+                            <TableColumn text="Course Name" prefWidth="150" />
+                            <TableColumn text="Department" prefWidth="100" />
+                            <TableColumn text="Assigned Date" prefWidth="120" />
+                            <TableColumn text="Action" prefWidth="80" />
+                        </columns>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+        </TabPane>
+    </center>
+
+    <!-- Status Bar -->
+    <bottom>
+        <HBox spacing="15" style="-fx-background-color: #ecf0f1; -fx-padding: 10;"
+            alignment="CENTER_LEFT">
+            <Label text="Total Teachers:" style="-fx-font-weight: bold;" />
+            <Label fx:id="totalTeachersLabel" text="0" />
+            <Separator orientation="VERTICAL" />
+            <Label text="Total Students:" style="-fx-font-weight: bold;" />
+            <Label fx:id="totalStudentsLabel" text="0" />
+            <Separator orientation="VERTICAL" />
+            <Label text="Total Courses:" style="-fx-font-weight: bold;" />
+            <Label fx:id="totalCoursesLabel" text="0" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="statusLabel" text="Ready"
+                style="-fx-text-fill: #27ae60; -fx-font-weight: bold;" />
+        </HBox>
+    </bottom>
+
+</BorderPane>
