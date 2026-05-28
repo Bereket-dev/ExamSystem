@@ -4,6 +4,7 @@ import com.examsystem.model.StudentAnswer;
 import com.examsystem.model.User;
 import com.examsystem.repository.UserRepository;
 import com.examsystem.repository.UserRepositoryImpl;
+import com.examsystem.rmi.remote.ClientPresenceResult;
 import com.examsystem.rmi.remote.ExamRemoteService;
 import com.examsystem.rmi.remote.LoginResult;
 import com.examsystem.rmi.remote.MonitoringSummary;
@@ -11,6 +12,7 @@ import com.examsystem.rmi.remote.RemoteAnswerPayload;
 import com.examsystem.db.DatabaseConnection;
 import com.examsystem.service.StudentService;
 import com.examsystem.service.TeacherService;
+import com.examsystem.sync.ClientConnectionEvent;
 import com.examsystem.sync.ClientSessionRegistry;
 import com.examsystem.sync.DatabaseSyncService;
 import com.examsystem.rmi.remote.SyncBundle;
@@ -60,6 +62,29 @@ public class ExamRemoteServiceImpl extends UnicastRemoteObject implements ExamRe
                 user.getUsername(),
                 user.getFullName(),
                 user.getRole().name());
+    }
+
+    @Override
+    public ClientPresenceResult registerClientPresence(String username, String role) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ClientPresenceResult.fail("Unknown user: " + username);
+        }
+        User user = userOpt.get();
+        if (!user.isActive()) {
+            return ClientPresenceResult.fail("User account is inactive");
+        }
+        if (user.getRole() == User.UserRole.ADMIN) {
+            return ClientPresenceResult.fail("Admin accounts do not register as clients");
+        }
+        String roleNorm = role == null ? "" : role.trim().toUpperCase();
+        if (!roleNorm.isEmpty() && !user.getRole().name().equalsIgnoreCase(roleNorm)) {
+            return ClientPresenceResult.fail("Role mismatch for user " + username);
+        }
+        ClientConnectionEvent event = ClientSessionRegistry.getInstance().registerClientConnection(
+                user.getUsername(), user.getFullName(), user.getRole().name());
+        logger.info("Client presence registered: {} — {}", username, event.message());
+        return ClientPresenceResult.ok(event.message());
     }
 
     @Override
@@ -124,6 +149,6 @@ public class ExamRemoteServiceImpl extends UnicastRemoteObject implements ExamRe
     }
 
     private void registerClientHeartbeat() {
-        ClientSessionRegistry.getInstance().heartbeat("rmi-client-" + System.currentTimeMillis());
+        ClientSessionRegistry.getInstance().heartbeat("rmi-sync-" + System.currentTimeMillis());
     }
 }

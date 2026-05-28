@@ -6,6 +6,8 @@ import com.examsystem.db.DeviceRole;
 import com.examsystem.model.User;
 import com.examsystem.network.NetworkManager;
 import com.examsystem.rmi.RMIManager;
+import com.examsystem.rmi.remote.ClientPresenceResult;
+import com.examsystem.sync.ClientSessionRegistry;
 import com.examsystem.sync.SyncManager;
 import com.examsystem.sync.SyncService;
 import com.examsystem.util.ConfigManager;
@@ -80,6 +82,11 @@ public final class ConnectionSetupService {
             logger.warn("Client online apply failed: {}", e.getMessage());
             return false;
         }
+    }
+
+    /** Prepare admin to wait for a client handshake on the setup screen. */
+    public static void beginAdminWaitForClient() {
+        ClientSessionRegistry.getInstance().beginWaitingForClient();
     }
 
     /** Admin device: start TCP + RMI registry (no remote client connection). */
@@ -217,6 +224,7 @@ public final class ConnectionSetupService {
                     throw new IllegalStateException("Could not connect to the admin RMI server.");
                 }
                 rmi.clientLogin(username, password);
+                notifyAdminOfClientPresence(user);
             }
             case STUDENT -> {
                 try {
@@ -230,8 +238,22 @@ public final class ConnectionSetupService {
                     throw new IllegalStateException("Could not connect to the admin RMI server.");
                 }
                 rmi.clientLogin(username, password);
+                notifyAdminOfClientPresence(user);
             }
             default -> throw new IllegalArgumentException("Only teachers and students use client online mode");
+        }
+    }
+
+    private static void notifyAdminOfClientPresence(User user) {
+        if (user.getRole() == User.UserRole.ADMIN) {
+            return;
+        }
+        ClientPresenceResult result = RMIManager.getInstance().registerClientPresence(
+                user.getUsername(), user.getRole().name());
+        if (result.isSuccess()) {
+            logger.info("Admin notified of client presence: {}", result.getMessage());
+        } else {
+            logger.warn("Client presence notification failed: {}", result.getMessage());
         }
     }
 

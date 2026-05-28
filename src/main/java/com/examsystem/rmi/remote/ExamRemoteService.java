@@ -13,6 +13,9 @@ public interface ExamRemoteService extends Remote {
 
     LoginResult login(String username, String password) throws RemoteException;
 
+    /** Teacher/student notifies admin server that online setup completed successfully. */
+    ClientPresenceResult registerClientPresence(String username, String role) throws RemoteException;
+
     boolean saveAnswer(RemoteAnswerPayload payload) throws RemoteException;
 
     boolean submitExam(int assignmentId, int totalMarks) throws RemoteException;

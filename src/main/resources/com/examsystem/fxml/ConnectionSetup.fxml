@@ -43,8 +43,14 @@
                     </VBox>
                 </HBox>
                 <Label fx:id="adminPortLabel" text="RMI registry port: 1099" styleClass="field-label" />
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <ProgressIndicator fx:id="adminWaitSpinner" prefWidth="22" prefHeight="22"
+                        visible="false" managed="false" />
+                    <Label fx:id="adminWaitStatusLabel" text=""
+                        styleClass="connection-status-text" wrapText="true" HBox.hgrow="ALWAYS" />
+                </HBox>
                 <HBox spacing="12" alignment="CENTER">
-                    <Button fx:id="adminContinueButton" text="Start Server &amp; Continue"
+                    <Button fx:id="adminContinueButton" text="Start Server &amp; Wait for Client"
                         styleClass="btn-primary" defaultButton="true" />
                     <Button fx:id="adminOfflineButton" text="Continue Offline" styleClass="btn-neutral" />
                 </HBox>

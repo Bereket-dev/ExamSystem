@@ -1,5 +1,6 @@
 package com.examsystem.rmi.client;
 
+import com.examsystem.rmi.remote.ClientPresenceResult;
 import com.examsystem.rmi.remote.ExamRemoteService;
 import com.examsystem.rmi.remote.LoginResult;
 import com.examsystem.rmi.remote.MonitoringSummary;
@@ -97,6 +98,11 @@ public class RMIClient {
     public LoginResult login(String username, String password) throws RemoteException {
         ensureConnected();
         return remoteService.login(username, password);
+    }
+
+    public ClientPresenceResult registerClientPresence(String username, String role) throws RemoteException {
+        ensureConnected();
+        return remoteService.registerClientPresence(username, role);
     }
 
     public boolean saveAnswer(RemoteAnswerPayload payload) throws RemoteException {

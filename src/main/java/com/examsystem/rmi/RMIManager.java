@@ -2,6 +2,7 @@ package com.examsystem.rmi;
 
 import com.examsystem.model.StudentAnswer;
 import com.examsystem.rmi.client.RMIClient;
+import com.examsystem.rmi.remote.ClientPresenceResult;
 import com.examsystem.rmi.remote.LoginResult;
 import com.examsystem.rmi.remote.MonitoringSummary;
 import com.examsystem.rmi.remote.RemoteAnswerPayload;
@@ -106,6 +107,21 @@ public class RMIManager {
         } catch (RemoteException e) {
             logger.warn("RMI login failed: {}", e.getMessage());
             return LoginResult.failure(e.getMessage());
+        }
+    }
+
+    /**
+     * Notifies the admin server that this client completed online connection setup.
+     */
+    public ClientPresenceResult registerClientPresence(String username, String role) {
+        try {
+            if (!isClientConnected() && !connectClient()) {
+                return ClientPresenceResult.fail("Not connected to admin server");
+            }
+            return rmiClient.registerClientPresence(username, role);
+        } catch (RemoteException e) {
+            logger.warn("RMI client presence failed: {}", e.getMessage());
+            return ClientPresenceResult.fail(e.getMessage());
         }
     }
 

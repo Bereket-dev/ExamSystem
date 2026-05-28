@@ -5,8 +5,13 @@ import com.examsystem.connection.ConnectionSettingsStore;
 import com.examsystem.connection.ConnectionSetupService;
 import com.examsystem.connection.ConnectionTestResult;
 import com.examsystem.model.User;
+import com.examsystem.sync.ClientSessionRegistry;
 import com.examsystem.sync.ui.SyncProgressDialog;
 import com.examsystem.util.AuthLogoutHelper;
+import javafx.animation.KeyFrame;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 import com.examsystem.util.BackgroundLoader;
 import com.examsystem.util.ConfigManager;
 import com.examsystem.util.NavigationHelper;
@@ -17,6 +22,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -29,6 +35,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ConnectionSetupController {
     private static final Logger logger = LoggerFactory.getLogger(ConnectionSetupController.class);
+    private static final int ADMIN_CLIENT_WAIT_TIMEOUT_SECONDS = 15;
 
     @FXML
     private Label pageTitleLabel;
@@ -56,6 +63,12 @@ public class ConnectionSetupController {
 
     @FXML
     private Button adminOfflineButton;
+
+    @FXML
+    private ProgressIndicator adminWaitSpinner;
+
+    @FXML
+    private Label adminWaitStatusLabel;
 
     @FXML
     private VBox clientConnectionPanel;
@@ -87,6 +100,8 @@ public class ConnectionSetupController {
     private User currentUser;
     private boolean adminMode;
     private volatile boolean lastTestSuccessful;
+    private Timeline adminClientWaitTimeline;
+    private PauseTransition adminWaitTimeout;
 
     @FXML
     public void initialize() {
@@ -155,6 +170,7 @@ public class ConnectionSetupController {
     }
 
     private void handleLogout() {
+        stopAdminClientWait();
         try {
             Stage stage = (Stage) logoutButton.getScene().getWindow();
             AuthLogoutHelper.logoutToLogin(stage);
@@ -165,6 +181,7 @@ public class ConnectionSetupController {
     }
 
     private void handleAdminContinue(int port) {
+        stopAdminClientWait();
         setActionButtonsDisabled(true);
         setMessage("Starting central server…", "connection-message");
 
@@ -175,6 +192,7 @@ public class ConnectionSetupController {
                 () -> {
                     try {
                         ConnectionSetupService.applyAdminServerMode(currentUser, profile);
+                        ConnectionSetupService.beginAdminWaitForClient();
                         return true;
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
@@ -182,7 +200,7 @@ public class ConnectionSetupController {
                 },
                 ok -> Platform.runLater(() -> {
                     setActionButtonsDisabled(false);
-                    openDashboardSafely();
+                    enterAdminWaitingForClient();
                 }),
                 error -> Platform.runLater(() -> {
                     setActionButtonsDisabled(false);
@@ -191,6 +209,104 @@ public class ConnectionSetupController {
                             "connection-message-warning");
                     logger.warn("Admin server start: {}", error.getMessage());
                 }));
+    }
+
+    private void enterAdminWaitingForClient() {
+        adminContinueButton.setDisable(true);
+        adminOfflineButton.setDisable(false);
+        logoutButton.setDisable(false);
+
+        if (adminWaitSpinner != null) {
+            adminWaitSpinner.setVisible(true);
+            adminWaitSpinner.setManaged(true);
+        }
+        applyAdminStatusDot("connection-dot-pending", "Waiting for client…");
+        setAdminWaitStatus("Server is running. Waiting for a teacher or student to connect…");
+        setMessage(
+                "Share this computer's IP with clients. The dashboard opens when a client connects successfully.",
+                "connection-message");
+
+        adminClientWaitTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(1), e -> checkForIncomingClient()));
+        adminClientWaitTimeline.setCycleCount(Timeline.INDEFINITE);
+        adminClientWaitTimeline.play();
+
+        adminWaitTimeout = new PauseTransition(Duration.seconds(ADMIN_CLIENT_WAIT_TIMEOUT_SECONDS));
+        adminWaitTimeout.setOnFinished(e -> Platform.runLater(this::onAdminWaitTimedOut));
+        adminWaitTimeout.play();
+    }
+
+    private void checkForIncomingClient() {
+        if (!ClientSessionRegistry.getInstance().isWaitingForClient()) {
+            return;
+        }
+        ClientSessionRegistry.getInstance().pollConnectionWhileWaiting().ifPresent(event ->
+                Platform.runLater(() -> onClientConnected(event.message())));
+    }
+
+    private void onAdminWaitTimedOut() {
+        if (!ClientSessionRegistry.getInstance().isWaitingForClient()) {
+            return;
+        }
+        ClientSessionRegistry.getInstance().cancelWaitingForClient();
+        stopAdminClientWait();
+
+        applyAdminStatusDot("connection-dot-error", "Timed out");
+        setAdminWaitStatus("No client connected within " + ADMIN_CLIENT_WAIT_TIMEOUT_SECONDS + " seconds");
+        setMessage(
+                "Waiting cancelled — no client connected in time. Retry, continue offline, or log out.",
+                "connection-message-warning");
+
+        adminContinueButton.setDisable(false);
+        adminOfflineButton.setDisable(false);
+        logoutButton.setDisable(false);
+        logger.info("Admin client wait timed out after {} seconds", ADMIN_CLIENT_WAIT_TIMEOUT_SECONDS);
+    }
+
+    private void onClientConnected(String clientMessage) {
+        stopAdminClientWait();
+        applyAdminStatusDot("connection-dot-success", "Client connected");
+        setAdminWaitStatus("Connected successfully");
+        setMessage("Received from client: " + clientMessage, "connection-message-success");
+
+        PauseTransition pause = new PauseTransition(Duration.seconds(1.5));
+        pause.setOnFinished(e -> openDashboardSafely());
+        pause.play();
+    }
+
+    private void stopAdminClientWait() {
+        if (adminClientWaitTimeline != null) {
+            adminClientWaitTimeline.stop();
+            adminClientWaitTimeline = null;
+        }
+        if (adminWaitTimeout != null) {
+            adminWaitTimeout.stop();
+            adminWaitTimeout = null;
+        }
+        if (adminWaitSpinner != null) {
+            adminWaitSpinner.setVisible(false);
+            adminWaitSpinner.setManaged(false);
+        }
+    }
+
+    private void setAdminWaitStatus(String text) {
+        if (adminWaitStatusLabel != null) {
+            adminWaitStatusLabel.setText(text);
+        }
+    }
+
+    private void applyAdminStatusDot(String dotClass, String statusText) {
+        if (adminStatusDot != null) {
+            adminStatusDot.getStyleClass().removeIf(c -> c.startsWith("connection-dot-"));
+            if (!adminStatusDot.getStyleClass().contains("connection-dot")) {
+                adminStatusDot.getStyleClass().add("connection-dot");
+            }
+            adminStatusDot.getStyleClass().add(dotClass);
+        }
+        if (statusText != null && adminWaitStatusLabel != null && adminWaitSpinner != null
+                && !adminWaitSpinner.isVisible()) {
+            adminWaitStatusLabel.setText(statusText);
+        }
     }
 
     private void handleTestConnection() {
@@ -259,6 +375,7 @@ public class ConnectionSetupController {
                 },
                 ok -> Platform.runLater(() -> {
                     setClientButtonsDisabled(false);
+                    setStatusSuccess("Connected successfully — opening dashboard…");
                     openDashboardSafely();
                 }),
                 error -> Platform.runLater(() -> {
@@ -270,6 +387,7 @@ public class ConnectionSetupController {
     }
 
     private void handleContinueOffline() {
+        stopAdminClientWait();
         setActionButtonsDisabled(true);
         setMessage("Activating offline mode…", "connection-message");
 
