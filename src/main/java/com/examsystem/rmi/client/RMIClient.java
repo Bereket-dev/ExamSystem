@@ -15,10 +15,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
-/**
- * RMI client with registry lookup and retry logic for slow LAN.
- * See context/KNOWN_ISSUES.md - RMI timeout retry.
- */
 public class RMIClient {
     private static final Logger logger = LoggerFactory.getLogger(RMIClient.class);
 

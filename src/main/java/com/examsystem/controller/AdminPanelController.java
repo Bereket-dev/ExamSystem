@@ -20,10 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 
-/**
- * Controller for the Admin Panel.
- * Manages teachers, students, courses, and teacher-course assignments.
- */
+
 public class AdminPanelController {
     private static final Logger logger = LoggerFactory.getLogger(AdminPanelController.class);
 
@@ -146,42 +143,34 @@ public class AdminPanelController {
         }
     }
 
-    /**
-     * Set the current admin user
-     */
     public void setCurrentAdmin(User admin) {
         this.currentAdmin = admin;
         adminNameLabel.setText("Welcome, " + admin.getFullName() + " (" + admin.getUsername() + ")");
     }
 
     private void setupUI() {
-        // Teachers Tab Handlers
         addTeacherButton.setOnAction(e -> openAddTeacherDialog());
         searchTeacherButton.setOnAction(e -> searchTeachers());
         resetTeacherSearchButton.setOnAction(e -> resetTeacherSearch());
 
-        // Students Tab Handlers
         addStudentButton.setOnAction(e -> openAddStudentDialog());
         searchStudentButton.setOnAction(e -> searchStudents());
         resetStudentSearchButton.setOnAction(e -> resetStudentSearch());
 
-        // Courses Tab Handlers
         addCourseButton.setOnAction(e -> openAddCourseDialog());
         searchCourseButton.setOnAction(e -> searchCourses());
         resetCourseSearchButton.setOnAction(e -> resetCourseSearch());
 
-        // Assignment Tab Handlers
         teacherComboBox.setOnAction(e -> onTeacherSelected());
         courseComboBox.setOnAction(e -> onCourseSelected());
         assignButton.setOnAction(e -> assignTeacherToCourse());
         removeAssignmentButton.setOnAction(e -> removeTeacherAssignment());
 
-        // Logout Handler
         logoutButton.setOnAction(e -> logout());
     }
 
     private void setupTableColumns() {
-        // Teachers table columns
+
         if (teachersTable != null && teachersTable.getColumns().size() > 0) {
             ((TableColumn<TeacherTableEntry, Integer>) teachersTable.getColumns().get(0))
                     .setCellValueFactory(new PropertyValueFactory<>("userId"));
@@ -272,7 +261,6 @@ public class AdminPanelController {
         updateStats();
     }
 
-    // ============ TEACHERS MANAGEMENT ============
 
     private void loadTeachers() {
         try {
@@ -295,7 +283,6 @@ public class AdminPanelController {
     }
 
     private void setupTeachersTableColumns() {
-        // Implementation of table columns will be done in TableColumn setup
         ObservableList<TableColumn<TeacherTableEntry, ?>> columns = teachersTable.getColumns();
         if (columns.size() > 0) {
             ((TableColumn<TeacherTableEntry, Integer>) columns.get(0)).setCellValueFactory(

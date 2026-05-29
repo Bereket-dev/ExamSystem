@@ -1,12 +1,6 @@
--- ExamSystem Test Data
--- Phase 1 Test Data Setup
--- Requires schema.sql applied first (empty database recommended).
-
 USE exam_system;
 
--- =============================================
--- 1. USERS
--- =============================================
+
 
 INSERT INTO users (username, password, email, full_name, role, is_active) VALUES
 ('admin', 'admin123', 'admin@examsystem.com', 'System Administrator', 'admin', TRUE),
@@ -16,26 +10,19 @@ INSERT INTO users (username, password, email, full_name, role, is_active) VALUES
 ('student2', 'student123', 'student2@examsystem.com', 'Bob Wilson', 'student', TRUE),
 ('student3', 'student123', 'student3@examsystem.com', 'Carol Davis', 'student', TRUE);
 
--- =============================================
--- 2. TEACHERS
--- =============================================
 
 INSERT INTO teachers (user_id, department, qualification, experience_years) VALUES
 (2, 'Software Engineering', 'PhD in Software Engineering', 10),
 (3, 'Software Engineering', 'MSc in Computer Science', 8);
 
--- =============================================
--- 3. STUDENTS
--- =============================================
+
 
 INSERT INTO students (user_id, enrollment_number, department, semester) VALUES
 (4, 'SE2021001', 'Software Engineering', 5),
 (5, 'SE2021002', 'Software Engineering', 5),
 (6, 'SE2021003', 'Software Engineering', 5);
 
--- =============================================
--- 4. COURSES
--- =============================================
+
 
 INSERT INTO courses (course_code, course_name, description, department, credits, semester, is_active) VALUES
 ('SWEG3102', 'Internet Programming II (IP II)', 'Server-side scripting, HTML forms, file handling, database connectivity, session management, cookies, and CMS fundamentals.', 'Software Engineering', 3, 1, TRUE),
@@ -44,9 +31,6 @@ INSERT INTO courses (course_code, course_name, description, department, credits,
 ('SWEG3108', 'Advanced Programming (AP)', 'Multithreading, socket programming, object serialization, RMI, database connectivity, GUI development, and web programming.', 'Software Engineering', 4, 1, TRUE),
 ('SWEG3110', 'Formal Language and Automata Theory (FLAT)', 'Strings, languages, grammar, finite automata, regular expressions, pushdown automata, context-free grammar, Turing machines.', 'Software Engineering', 3, 1, TRUE);
 
--- =============================================
--- 5. TEACHER-COURSE ASSIGNMENTS
--- =============================================
 
 INSERT INTO teacher_courses (teacher_id, course_id, is_active) VALUES
 (1, 1, TRUE),
@@ -57,9 +41,6 @@ INSERT INTO teacher_courses (teacher_id, course_id, is_active) VALUES
 (2, 1, TRUE),
 (2, 2, TRUE);
 
--- =============================================
--- 6. EXAMS (One per course)
--- =============================================
 
 INSERT INTO exams (teacher_id, course_id, exam_name, description, subject, duration_minutes, total_questions, total_marks, passing_marks, is_published) VALUES
 (1, 1, 'Internet Programming II Final Exam', 'Final examination for Internet Programming II course', 'IP II', 60, 10, 20, 10, TRUE),
@@ -68,9 +49,7 @@ INSERT INTO exams (teacher_id, course_id, exam_name, description, subject, durat
 (1, 4, 'Advanced Programming Final Exam', 'Final examination for Advanced Programming', 'AP', 60, 10, 20, 10, TRUE),
 (1, 5, 'Formal Language and Automata Theory Final Exam', 'Final examination for FLAT', 'FLAT', 60, 10, 20, 10, TRUE);
 
--- =============================================
--- 7. QUESTIONS FOR AP (Advanced Programming) - Exam ID: 4
--- =============================================
+
 
 INSERT INTO questions (exam_id, question_text, question_type, marks, sequence_order, difficulty_level) VALUES
 (4, 'What does RPC stand for?', 'mcq', 2, 1, 'easy'),

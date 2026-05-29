@@ -15,10 +15,7 @@ import java.net.Socket;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * TCP client with reconnection support for distributed exam operations.
- * See context/CLASS_DIAGRAM_REFERENCE.md - ExamClient.
- */
+
 public class ExamClient {
     private static final Logger logger = LoggerFactory.getLogger(ExamClient.class);
 

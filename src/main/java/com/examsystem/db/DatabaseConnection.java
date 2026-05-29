@@ -153,10 +153,6 @@ public class DatabaseConnection {
         }
     }
 
-    /**
-     * Primary connection for application repositories.
-     * Admin devices use central MySQL; client devices use local H2 backup.
-     */
     public static Connection getConnection() throws SQLException {
         if (isClientDevice() || forceOfflineData) {
             return BackupDatabaseConnection.getConnection();
@@ -164,12 +160,10 @@ public class DatabaseConnection {
         return getCentralConnection();
     }
 
-    /** Central authoritative MySQL database (admin host). */
     public static Connection getCentralConnection() throws SQLException {
         return getCentralDataSource().getConnection();
     }
 
-    /** Authentication and user master data always use the central database. */
     public static Connection getAuthConnection() throws SQLException {
         return getCentralConnection();
     }
